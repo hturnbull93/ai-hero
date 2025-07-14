@@ -1,8 +1,8 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { Loader2, X } from "lucide-react";
+import { useState, useEffect } from "react";
 import { ChatMessage } from "~/components/chat-message";
 import { SignInModal } from "~/components/sign-in-modal";
 
@@ -13,6 +13,7 @@ interface ChatProps {
 
 export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
+  const [showError, setShowError] = useState(false);
   
   const {
     messages,
@@ -20,7 +21,20 @@ export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
     handleInputChange,
     handleSubmit,
     status,
+    error
   } = useChat();
+
+  // Auto-hide error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      setShowError(true);
+      const timer = setTimeout(() => {
+        setShowError(false);
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -31,6 +45,10 @@ export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
     }
     
     handleSubmit(e);
+  };
+
+  const dismissError = () => {
+    setShowError(false);
   };
 
   return (
@@ -51,6 +69,22 @@ export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
             );
           })}
         </div>
+
+        {/* Error display */}
+        {error && showError && (
+          <div className="mx-auto w-full max-w-[65ch] px-4 pb-4">
+            <div className="flex items-center justify-between rounded bg-red-900/50 border border-red-700 px-4 py-3 text-red-200">
+              <span className="text-sm">{error.message}</span>
+              <button
+                onClick={dismissError}
+                className="text-red-300 hover:text-red-100"
+                aria-label="Dismiss error"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="border-t border-gray-700">
           <form
