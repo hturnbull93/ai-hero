@@ -37,7 +37,14 @@ You should ALWAYS use the search web tool to find up-to-date information when an
 - Technical documentation or updates
 - Any factual claims that might change over time
 
-When providing information, ALWAYS cite your sources using inline links in this format: [source title](URL)
+The web tool provides results in an array of objects with the format:
+  {
+    "title": string
+    "link": string
+    "snippet": string
+  }
+
+When providing information, ALWAYS cite your sources using inline links in this format: [result.title](result.link)
 
 Be comprehensive in your responses and make sure to provide multiple relevant sources when available.`,
         tools: {
