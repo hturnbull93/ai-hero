@@ -23,3 +23,7 @@ git remote add upstream https://github.com/ai-hero-dev/ai-hero.git
 
 - **Your work**: `git push origin main` (push to your fork)
 - **Course updates**: `git fetch upstream` then `git merge upstream/main` (pull course updates)
+
+## Google AI Studio
+
+API keys available from <https://aistudio.google.com/app/apikey>
