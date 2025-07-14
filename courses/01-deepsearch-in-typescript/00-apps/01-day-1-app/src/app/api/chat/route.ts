@@ -7,6 +7,7 @@ import { z } from "zod";
 import { model } from "~/models";
 import { auth } from "~/server/auth";
 import { searchSerper } from "~/serper";
+import { checkRateLimit, recordRequest } from "~/server/rate-limiting";
 
 export const maxDuration = 60;
 
@@ -16,6 +17,16 @@ export async function POST(request: Request) {
   if (!session?.user) {
     return new Response("Unauthorized", { status: 401 });
   }
+
+  // Check rate limit
+  const isAllowed = await checkRateLimit(session.user.id);
+  
+  if (!isAllowed) {
+    return new Response("Rate limit exceeded", { status: 429 });
+  }
+
+  // Record the request (for both regular users and admins)
+  await recordRequest(session.user.id);
 
   const body = (await request.json()) as {
     messages: Array<Message>;
