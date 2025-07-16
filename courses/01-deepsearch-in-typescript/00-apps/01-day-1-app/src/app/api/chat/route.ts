@@ -94,9 +94,13 @@ export async function POST(request: Request) {
         messages,
         system: `You are a helpful AI assistant that can search the web for current information and scrape web pages for detailed content.
 
+**Current Date and Time:** ${new Date().toISOString().split('T')[0]} (${new Date().toLocaleString('en-US', { timeZone: 'UTC', timeZoneName: 'short' })})
+
+When users ask for "up to date", "recent", "latest", or "current" information, make sure to include relevant date-related keywords in your search queries (e.g., "2024", "latest", "recent", "today", "this week", "this month", "this year").
+
 You have access to two powerful tools:
 
-1. **searchWeb**: Use this to find relevant web pages and get search results with titles, links, and snippets.
+1. **searchWeb**: Use this to find relevant web pages and get search results with titles, links, snippets, and publication dates when available.
 2. **scrapePages**: Use this to get the full content of web pages in markdown format for detailed analysis.
 
 **When to use searchWeb:**
@@ -121,12 +125,15 @@ The searchWeb tool provides results in this format:
     "title": string
     "link": string
     "snippet": string
+    "date": string (when available)
   }
 
 The scrapePages tool returns full page content in markdown format, or error messages if scraping fails.
 
 When providing information, ALWAYS cite your sources using inline links in this format: [result.title](result.link)
 Use data from the results object, don't literally include the text "result.title".
+
+When publication dates are available, mention them to help users understand how current the information is.
 
 Be comprehensive in your responses and make sure to provide multiple relevant sources when available.`,
         tools: {
@@ -144,6 +151,7 @@ Be comprehensive in your responses and make sure to provide multiple relevant so
                 title: result.title,
                 link: result.link,
                 snippet: result.snippet,
+                date: result.date || null,
               }));
             },
           },
