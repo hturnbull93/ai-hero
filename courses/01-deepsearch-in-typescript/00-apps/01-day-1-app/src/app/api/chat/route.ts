@@ -108,6 +108,7 @@ Be comprehensive in your responses and make sure to provide multiple relevant so
           },
         },
         maxSteps: 10,
+        experimental_telemetry: { isEnabled: true },
         onFinish: async ({ response }) => {
           try {
             const responseMessages = response.messages;
