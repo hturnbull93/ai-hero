@@ -3,17 +3,21 @@
 import { useChat } from "@ai-sdk/react";
 import { Loader2, X } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ChatMessage } from "~/components/chat-message";
 import { SignInModal } from "~/components/sign-in-modal";
+import { isNewChatCreated } from "~/utils";
 
 interface ChatProps {
   userName: string;
   isAuthenticated: boolean;
+  chatId: string | undefined;
 }
 
-export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
+export const ChatPage = ({ userName, isAuthenticated, chatId }: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showError, setShowError] = useState(false);
+  const router = useRouter();
   
   const {
     messages,
@@ -21,8 +25,13 @@ export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
     handleInputChange,
     handleSubmit,
     status,
-    error
-  } = useChat();
+    error,
+    data
+  } = useChat({
+    body: {
+      chatId,
+    },
+  });
 
   // Auto-hide error after 5 seconds
   useEffect(() => {
@@ -35,6 +44,23 @@ export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
       return () => clearTimeout(timer);
     }
   }, [error]);
+
+  // Listen for new chat creation and redirect
+  useEffect(() => {
+    const lastDataItem = data?.[data.length - 1];
+
+    if (lastDataItem && isNewChatCreated(lastDataItem)) {
+      
+      // More robust redirect with error handling
+      try {
+        router.push(`?id=${lastDataItem.chatId}`);
+      } catch (error) {
+        console.error('Failed to redirect to new chat:', error);
+        // Fallback: Try to refresh the page with the new chat ID
+        window.location.href = `?id=${lastDataItem.chatId}`;
+      }
+    }
+  }, [data, router]);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

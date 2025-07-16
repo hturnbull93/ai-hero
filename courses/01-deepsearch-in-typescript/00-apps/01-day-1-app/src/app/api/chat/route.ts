@@ -41,6 +41,15 @@ export async function POST(request: Request) {
 
       // Determine the chat ID - use existing or generate new one
       const currentChatId = chatId || crypto.randomUUID();
+      const isNewChat = !chatId;
+
+      // If this is a new chat, send the chat ID to the frontend
+      if (isNewChat) {
+        dataStream.writeData({
+          type: "NEW_CHAT_CREATED",
+          chatId: currentChatId,
+        });
+      }
 
       // Create/update chat before streaming starts to protect against broken streams
       // Generate a title from the first user message (take first 50 chars)
