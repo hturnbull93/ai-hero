@@ -32,22 +32,20 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     messages: Array<Message>;
-    chatId?: string;
+    chatId: string;
+    isNewChat: boolean;
   };
 
   return createDataStreamResponse({
     execute: async (dataStream) => {
-      const { messages, chatId } = body;
+      const { messages, chatId, isNewChat } = body;
 
-      // Determine the chat ID - use existing or generate new one
-      const currentChatId = chatId || crypto.randomUUID();
-      const isNewChat = !chatId;
 
       // If this is a new chat, send the chat ID to the frontend
       if (isNewChat) {
         dataStream.writeData({
           type: "NEW_CHAT_CREATED",
-          chatId: currentChatId,
+          chatId,
         });
       }
 
@@ -63,7 +61,7 @@ export async function POST(request: Request) {
       // The original messages have content as strings, which is what upsertChat expects
       await upsertChat({
         userId: session.user.id,
-        chatId: currentChatId,
+        chatId,
         title,
         messages,
       });
@@ -131,7 +129,7 @@ Be comprehensive in your responses and make sure to provide multiple relevant so
 
             await upsertChat({
               userId: session.user.id,
-              chatId: currentChatId,
+              chatId,
               title,
               messages: messagesToSave,
             });
