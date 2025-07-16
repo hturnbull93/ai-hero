@@ -2,12 +2,14 @@ import type { Message } from "ai";
 import {
   streamText,
   createDataStreamResponse,
+  appendResponseMessages,
 } from "ai";
 import { z } from "zod";
 import { model } from "~/models";
 import { auth } from "~/server/auth";
 import { searchSerper } from "~/serper";
 import { checkRateLimit, recordRequest } from "~/server/rate-limiting";
+import { upsertChat } from "~/server/db/queries";
 
 export const maxDuration = 60;
 
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
 
   // Check rate limit
   const isAllowed = await checkRateLimit(session.user.id);
-  
+
   if (!isAllowed) {
     return new Response("Rate limit exceeded", { status: 429 });
   }
@@ -30,11 +32,32 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     messages: Array<Message>;
+    chatId?: string;
   };
 
   return createDataStreamResponse({
     execute: async (dataStream) => {
-      const { messages } = body;
+      const { messages, chatId } = body;
+
+      // Determine the chat ID - use existing or generate new one
+      const currentChatId = chatId || crypto.randomUUID();
+
+      // Create/update chat before streaming starts to protect against broken streams
+      // Generate a title from the first user message (take first 50 chars)
+      const firstUserMessage = messages.find((m) => m.role === "user");
+      const title =
+        typeof firstUserMessage?.content === "string"
+          ? firstUserMessage.content.slice(0, 50)
+          : "New Chat";
+
+      // Save the current messages to the database before starting the stream
+      // The original messages have content as strings, which is what upsertChat expects
+      await upsertChat({
+        userId: session.user.id,
+        chatId: currentChatId,
+        title,
+        messages,
+      });
 
       const result = streamText({
         model,
@@ -78,13 +101,42 @@ Be comprehensive in your responses and make sure to provide multiple relevant so
           },
         },
         maxSteps: 10,
+        onFinish: async ({ response }) => {
+          try {
+            const responseMessages = response.messages;
+            
+            // Merge the original messages with the AI's response messages
+            const updatedMessages = appendResponseMessages({
+              messages,
+              responseMessages,
+            });
+
+            // Save the complete conversation to the database
+            // Map parts to content since upsertChat expects content to be stored as parts in DB
+            const messagesToSave: Message[] = updatedMessages.map((msg) => ({
+              id: msg.id,
+              role: msg.role,
+              content: (msg.parts || msg.content || "") as any, // Cast to any since upsertChat stores content as JSON parts
+              createdAt: msg.createdAt,
+            }));
+
+            await upsertChat({
+              userId: session.user.id,
+              chatId: currentChatId,
+              title,
+              messages: messagesToSave,
+            });
+          } catch (error) {
+            console.error("Error saving chat after completion:", error);
+          }
+        },
       });
 
       result.mergeIntoDataStream(dataStream);
     },
     onError: (e) => {
       console.error(e);
-      return "Oops, an error occured!";
+      return "Oops, an error occurred!";
     },
   });
-} 
+}
