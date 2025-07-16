@@ -130,9 +130,17 @@ export async function getChat(chatId: string, userId: string) {
   // Convert to AI Message format
   const formattedMessages: Message[] = chatMessages.map((msg) => ({
     id: msg.id,
-    role: msg.role as Message["role"],
-    content: msg.parts as Message["content"],
-    createdAt: msg.createdAt,
+    // msg.role is typed as string, so we
+    // need to cast it to the correct type
+    role: msg.role as "user" | "assistant",
+    // msg.parts is typed as unknown[], so we
+    // need to cast it to the correct type
+    parts: msg.parts as Message["parts"],
+    // content is not persisted, so we can
+    // safely pass an empty string, because
+    // parts are always present, and the AI SDK
+    // will use the parts to construct the content
+    content: "",
   }));
 
   return {
