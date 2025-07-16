@@ -1,12 +1,13 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { StickToBottom } from "use-stick-to-bottom";
 import { ChatMessage } from "~/components/chat-message";
 import { SignInModal } from "~/components/sign-in-modal";
+import { ErrorMessage } from "~/components/error-message";
 import { useChatContext } from "~/components/chat-context";
 import { isNewChatCreated } from "~/utils";
 import type { Message } from "ai";
@@ -123,17 +124,11 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
 
         {/* Error display */}
         {error && showError && (
-          <div className="mx-auto w-full max-w-[65ch] px-4 pb-4">
-            <div className="flex items-center justify-between rounded bg-red-900/50 border border-red-700 px-4 py-3 text-red-200">
-              <span className="text-sm">{error.message}</span>
-              <button
-                onClick={dismissError}
-                className="text-red-300 hover:text-red-100"
-                aria-label="Dismiss error"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
+          <div className="mx-auto w-full max-w-[65ch] p-4">
+            <ErrorMessage 
+              message={error.message} 
+              onDismiss={dismissError}
+            />
           </div>
         )}
 
