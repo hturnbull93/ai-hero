@@ -161,4 +161,26 @@ export async function getChats(userId: string) {
     .from(chats)
     .where(eq(chats.userId, userId))
     .orderBy(desc(chats.updatedAt));
+}
+
+export async function deleteChat(chatId: string, userId: string) {
+  // First verify the chat exists and belongs to the user
+  const existingChat = await db
+    .select({ id: chats.id, userId: chats.userId })
+    .from(chats)
+    .where(eq(chats.id, chatId))
+    .limit(1);
+
+  if (existingChat.length === 0) {
+    throw new Error("Chat not found");
+  }
+
+  if (existingChat[0]!.userId !== userId) {
+    throw new Error("Chat does not belong to the logged in user");
+  }
+
+  // Delete the chat (messages will be deleted automatically due to cascade)
+  await db.delete(chats).where(eq(chats.id, chatId));
+
+  return { success: true };
 } 
