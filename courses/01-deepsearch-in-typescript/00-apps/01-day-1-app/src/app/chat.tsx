@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { StickToBottom } from "use-stick-to-bottom";
 import { ChatMessage } from "~/components/chat-message";
 import { SignInModal } from "~/components/sign-in-modal";
+import { useChatContext } from "~/components/chat-context";
 import { isNewChatCreated } from "~/utils";
 import type { Message } from "ai";
 
@@ -22,6 +23,7 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showError, setShowError] = useState(false);
   const router = useRouter();
+  const { addChat } = useChatContext();
   
   const {
     messages,
@@ -56,6 +58,19 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
     const lastDataItem = data?.[data.length - 1];
 
     if (lastDataItem && isNewChatCreated(lastDataItem)) {
+      // Add the new chat to the context
+      const firstUserMessage = messages.find((m) => m.role === "user");
+      const title =
+        typeof firstUserMessage?.content === "string"
+          ? firstUserMessage.content.slice(0, 50)
+          : "New Chat";
+
+      addChat({
+        id: lastDataItem.chatId,
+        title,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
       
       // More robust redirect with error handling
       try {
@@ -66,7 +81,7 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
         window.location.href = `?id=${lastDataItem.chatId}`;
       }
     }
-  }, [data, router]);
+  }, [data, router, messages, addChat]);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

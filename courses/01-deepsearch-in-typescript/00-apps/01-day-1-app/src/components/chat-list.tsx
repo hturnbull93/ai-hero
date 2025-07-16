@@ -2,27 +2,21 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { DeleteChatButton } from "./delete-chat-button";
+import { useChatContext } from "./chat-context";
 
 interface ChatListProps {
-  initialChats: Array<{
-    id: string;
-    title: string;
-    createdAt: Date;
-    updatedAt: Date;
-  }>;
   currentChatId?: string;
   isAuthenticated: boolean;
 }
 
-export function ChatList({ initialChats, currentChatId, isAuthenticated }: ChatListProps) {
-  const [chats, setChats] = useState(initialChats);
+export function ChatList({ currentChatId, isAuthenticated }: ChatListProps) {
+  const { chats, removeChat } = useChatContext();
   const router = useRouter();
 
   const handleDeleteChat = (chatId: string) => {
-    // Remove chat from local state immediately
-    setChats(prevChats => prevChats.filter(chat => chat.id !== chatId));
+    // Remove chat from context state immediately
+    removeChat(chatId);
     
     // If we're deleting the currently active chat, redirect to home
     if (chatId === currentChatId) {
