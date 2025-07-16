@@ -5,11 +5,17 @@ import {
   appendResponseMessages,
 } from "ai";
 import { z } from "zod";
+import { Langfuse } from "langfuse";
+import { env } from "~/env";
 import { model } from "~/models";
 import { auth } from "~/server/auth";
 import { searchSerper } from "~/serper";
 import { checkRateLimit, recordRequest } from "~/server/rate-limiting";
 import { upsertChat } from "~/server/db/queries";
+
+const langfuse = new Langfuse({
+  environment: env.NODE_ENV,
+});
 
 export const maxDuration = 60;
 
@@ -40,6 +46,12 @@ export async function POST(request: Request) {
     execute: async (dataStream) => {
       const { messages, chatId, isNewChat } = body;
 
+      // Create Langfuse trace with session and user data
+      const trace = langfuse.trace({
+        sessionId: chatId,
+        name: "chat",
+        userId: session.user.id,
+      });
 
       // If this is a new chat, send the chat ID to the frontend
       if (isNewChat) {
@@ -108,7 +120,13 @@ Be comprehensive in your responses and make sure to provide multiple relevant so
           },
         },
         maxSteps: 10,
-        experimental_telemetry: { isEnabled: true },
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: `agent`,
+          metadata: {
+            langfuseTraceId: trace.id,
+          },
+        },
         onFinish: async ({ response }) => {
           try {
             const responseMessages = response.messages;
@@ -134,6 +152,9 @@ Be comprehensive in your responses and make sure to provide multiple relevant so
               title,
               messages: messagesToSave,
             });
+
+            // Flush the Langfuse trace to the platform
+            await langfuse.flushAsync();
           } catch (error) {
             console.error("Error saving chat after completion:", error);
           }
