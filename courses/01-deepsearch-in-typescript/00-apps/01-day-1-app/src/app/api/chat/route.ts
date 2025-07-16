@@ -84,8 +84,8 @@ The web tool provides results in an array of objects with the format:
     "link": string
     "snippet": string
   }
-
 When providing information, ALWAYS cite your sources using inline links in this format: [result.title](result.link)
+Use data from the results object, don't literally include the text "result.title".
 
 Be comprehensive in your responses and make sure to provide multiple relevant sources when available.`,
         tools: {
