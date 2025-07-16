@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { StickToBottom } from "use-stick-to-bottom";
 import { ChatMessage } from "~/components/chat-message";
@@ -25,6 +25,7 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
   const [showError, setShowError] = useState(false);
   const router = useRouter();
   const { addChat } = useChatContext();
+  const hasHandledNewChat = useRef(false);
   
   const {
     messages,
@@ -54,11 +55,16 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
     }
   }, [error]);
 
-  // Listen for new chat creation and redirect
+  // Listen for new chat creation and redirect (only once per chat creation)
   useEffect(() => {
-    const lastDataItem = data?.[data.length - 1];
+    // Only handle this for new chats, and only once
+    if (!isNewChat || !data?.length || hasHandledNewChat.current) return;
+    
+    const lastDataItem = data[data.length - 1];
 
     if (lastDataItem && isNewChatCreated(lastDataItem)) {
+      hasHandledNewChat.current = true; // Mark as handled to prevent re-runs
+      
       // Add the new chat to the context
       const firstUserMessage = messages.find((m) => m.role === "user");
       const title =
@@ -82,7 +88,7 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
         window.location.href = `?id=${lastDataItem.chatId}`;
       }
     }
-  }, [data, router, messages, addChat]);
+  }, [data, router, addChat, isNewChat]);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
