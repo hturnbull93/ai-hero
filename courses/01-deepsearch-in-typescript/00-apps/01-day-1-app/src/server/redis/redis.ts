@@ -11,7 +11,20 @@ export const cacheWithRedis = <TFunc extends (...args: any[]) => Promise<any>>(
   fn: TFunc,
 ): TFunc => {
   return (async (...args: Parameters<TFunc>) => {
-    const key = `${keyPrefix}${CACHE_KEY_SEPARATOR}${JSON.stringify(args)}`;
+    // Determine cache behavior based on environment
+    const isEvalMode = process.env.EVAL_MODE === "true";
+    const skipCacheInEval = process.env.SKIP_CACHE_IN_EVAL === "true";
+
+    // Skip caching entirely if in eval mode and configured to skip
+    if (isEvalMode && skipCacheInEval) {
+      console.log(`Cache bypassed for ${keyPrefix} (eval mode)`);
+      return await fn(...args);
+    }
+
+    // Concatenate eval prefix if in eval mode
+    const actualPrefix = isEvalMode ? `eval-${keyPrefix}` : keyPrefix;
+    const key = `${actualPrefix}${CACHE_KEY_SEPARATOR}${JSON.stringify(args)}`;
+    
     const cachedResult = await redis.get(key);
     if (cachedResult) {
       console.log(`Cache hit for ${key}`);

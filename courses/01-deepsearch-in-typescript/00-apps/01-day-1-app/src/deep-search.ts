@@ -15,7 +15,7 @@ const scrapePages = cacheWithRedis(
   async (urls: string[]) => {
     const result = await bulkCrawlWebsites({ urls });
     return result;
-  }
+  },
 );
 
 export const streamFromDeepSearch = (opts: {

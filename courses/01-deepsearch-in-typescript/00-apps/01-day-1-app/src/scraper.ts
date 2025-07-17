@@ -210,5 +210,5 @@ export const crawlWebsite = cacheWithRedis(
       success: false,
       error: "Maximum retry attempts reached",
     };
-  }
+  },
 ); 
