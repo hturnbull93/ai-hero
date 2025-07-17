@@ -6,7 +6,7 @@ import {
 import { Langfuse } from "langfuse";
 import { env } from "~/env";
 import { auth } from "~/server/auth";
-import { checkRateLimit, recordRequest } from "~/server/rate-limiting";
+import { checkRateLimit, recordRateLimit, type RateLimitConfig } from "~/server/rate-limiting";
 import { upsertChat } from "~/server/db/queries";
 import { streamFromDeepSearch } from "~/deep-search";
 
@@ -23,15 +23,30 @@ export async function POST(request: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  // Check rate limit
-  const isAllowed = await checkRateLimit(session.user.id);
+  // Global rate limit configuration - 1 request per 5 seconds for testing
+  const config: RateLimitConfig = {
+    maxRequests: 1,
+    maxRetries: 3,
+    windowMs: 5_000, // 5 seconds
+    keyPrefix: "global",
+  };
 
-  if (!isAllowed) {
-    return new Response("Rate limit exceeded", { status: 429 });
+  // Check the rate limit
+  const rateLimitCheck = await checkRateLimit(config);
+
+  if (!rateLimitCheck.allowed) {
+    console.log("Rate limit exceeded, waiting...");
+    const isAllowed = await rateLimitCheck.retry();
+    // If the rate limit is still exceeded after retries, return a 429
+    if (!isAllowed) {
+      return new Response("Rate limit exceeded", {
+        status: 429,
+      });
+    }
   }
 
-  // Record the request (for both regular users and admins)
-  await recordRequest(session.user.id);
+  // Record the request
+  await recordRateLimit(config);
 
   const body = (await request.json()) as {
     messages: Array<Message>;
