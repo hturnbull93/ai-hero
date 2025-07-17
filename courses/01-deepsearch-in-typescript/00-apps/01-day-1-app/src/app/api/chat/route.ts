@@ -57,9 +57,8 @@ export async function POST(request: Request) {
     execute: async (dataStream) => {
       const { messages, chatId, isNewChat } = body;
 
-      // Create Langfuse trace with session and user data
+      // Create Langfuse trace with user data
       const trace = langfuse.trace({
-        sessionId: chatId,
         name: "chat",
         userId: session.user.id,
       });
@@ -82,11 +81,30 @@ export async function POST(request: Request) {
 
       // Save the current messages to the database before starting the stream
       // The original messages have content as strings, which is what upsertChat expects
-      await upsertChat({
+      const upsertChatSpan = trace.span({
+        name: "upsert-chat-before-stream",
+        input: {
+          userId: session.user.id,
+          chatId,
+          title,
+          messageCount: messages.length,
+        },
+      });
+
+      const upsertResult = await upsertChat({
         userId: session.user.id,
         chatId,
         title,
         messages,
+      });
+
+      upsertChatSpan.end({
+        output: upsertResult,
+      });
+
+      // Update trace with sessionId now that we have the chatId
+      trace.update({
+        sessionId: chatId,
       });
 
       const result = streamText({
@@ -212,11 +230,25 @@ Be comprehensive in your responses and make sure to provide multiple relevant so
               createdAt: msg.createdAt,
             }));
 
-            await upsertChat({
+            const saveConversationSpan = trace.span({
+              name: "upsert-chat-after-stream",
+              input: {
+                userId: session.user.id,
+                chatId,
+                title,
+                messageCount: messagesToSave.length,
+              },
+            });
+
+            const saveResult = await upsertChat({
               userId: session.user.id,
               chatId,
               title,
               messages: messagesToSave,
+            });
+
+            saveConversationSpan.end({
+              output: saveResult,
             });
 
             // Flush the Langfuse trace to the platform
