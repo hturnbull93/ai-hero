@@ -51,7 +51,8 @@ You have access to two powerful tools:
 - When snippets from search results are insufficient
 
 **Best Practice Workflow:**
-1. Start with searchWeb to find relevant pages
+1. ALWAYS start with searchWeb to find relevant pages
+  - If the user asks for a specific date, make sure to include the date in the search query
 2. Use scrapePages on the most relevant URLs to get full content
 3. Provide comprehensive answers with proper citations
 
