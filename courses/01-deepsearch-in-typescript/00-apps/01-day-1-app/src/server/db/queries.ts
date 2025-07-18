@@ -82,12 +82,27 @@ export async function upsertChat(opts: {
 
     // Insert new messages
     if (messageList.length > 0) {
-      const messageValues = messageList.map((message, index) => ({
-        chatId,
-        role: message.role,
-        parts: message.content as unknown as any, // Store the content as JSON
-        order: index,
-      }));
+      const messageValues = messageList.map((message, index) => {
+        // Properly handle the parts/content conversion
+        let partsData;
+        if (message.parts && Array.isArray(message.parts)) {
+          // If message has parts array, use it
+          partsData = message.parts;
+        } else if (message.content) {
+          // If message has content (string), convert to parts format
+          partsData = [{ type: "text", text: message.content }];
+        } else {
+          // Fallback to empty text part
+          partsData = [{ type: "text", text: "" }];
+        }
+
+        return {
+          chatId,
+          role: message.role,
+          parts: partsData,
+          order: index,
+        };
+      });
 
       await tx.insert(messages).values(messageValues);
     }

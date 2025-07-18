@@ -110,13 +110,13 @@ export const ChatMessage = ({ message, userName }: ChatMessageProps) => {
         </p>
 
         <div className="prose prose-invert max-w-none">
-          {message.parts ? (
+          {message.parts && message.parts.length > 0 ? (
             message.parts.map((part, index) => (
               <MessagePartRenderer key={index} part={part} />
             ))
           ) : (
             // Fallback to content if parts are not available
-            <Markdown>{message.content}</Markdown>
+            <Markdown>{typeof message.content === "string" ? message.content : ""}</Markdown>
           )}
         </div>
       </div>

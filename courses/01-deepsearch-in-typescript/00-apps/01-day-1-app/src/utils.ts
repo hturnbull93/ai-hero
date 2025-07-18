@@ -10,4 +10,13 @@ export function isNewChatCreated(
     "type" in data &&
     data.type === "NEW_CHAT_CREATED"
   );
-} 
+}
+
+export function isError(error: unknown): error is { message: string } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message?: string }).message === "string"
+  );
+}

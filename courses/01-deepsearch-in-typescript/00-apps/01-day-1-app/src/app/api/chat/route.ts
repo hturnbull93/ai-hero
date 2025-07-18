@@ -1,14 +1,16 @@
 import type { Message } from "ai";
-import {
-  createDataStreamResponse,
-  appendResponseMessages,
-} from "ai";
+import { createDataStreamResponse, appendResponseMessages } from "ai";
 import { Langfuse } from "langfuse";
 import { env } from "~/env";
 import { auth } from "~/server/auth";
-import { checkRateLimit, recordRateLimit, type RateLimitConfig } from "~/server/rate-limiting";
+import {
+  checkRateLimit,
+  recordRateLimit,
+  type RateLimitConfig,
+} from "~/server/rate-limiting";
 import { upsertChat } from "~/server/db/queries";
 import { streamFromDeepSearch } from "~/deep-search";
+import { isError } from "~/utils";
 
 const langfuse = new Langfuse({
   environment: env.NODE_ENV,
@@ -81,7 +83,6 @@ export async function POST(request: Request) {
           : "New Chat";
 
       // Save the current messages to the database before starting the stream
-      // The original messages have content as strings, which is what upsertChat expects
       const upsertChatSpan = trace.span({
         name: "upsert-chat-before-stream",
         input: {
@@ -120,7 +121,7 @@ export async function POST(request: Request) {
         onFinish: async ({ response }) => {
           try {
             const responseMessages = response.messages;
-            
+
             // Merge the original messages with the AI's response messages
             const updatedMessages = appendResponseMessages({
               messages,
@@ -128,21 +129,13 @@ export async function POST(request: Request) {
             });
 
             // Save the complete conversation to the database
-            // Map parts to content since upsertChat expects content to be stored as parts in DB
-            const messagesToSave: Message[] = updatedMessages.map((msg) => ({
-              id: msg.id,
-              role: msg.role,
-              content: (msg.parts || msg.content || "") as any, // Cast to any since upsertChat stores content as JSON parts
-              createdAt: msg.createdAt,
-            }));
-
             const saveConversationSpan = trace.span({
               name: "upsert-chat-after-stream",
               input: {
                 userId: session.user.id,
                 chatId,
                 title,
-                messageCount: messagesToSave.length,
+                messageCount: updatedMessages.length,
               },
             });
 
@@ -150,7 +143,7 @@ export async function POST(request: Request) {
               userId: session.user.id,
               chatId,
               title,
-              messages: messagesToSave,
+              messages: updatedMessages,
             });
 
             saveConversationSpan.end({
@@ -168,8 +161,19 @@ export async function POST(request: Request) {
       result.mergeIntoDataStream(dataStream);
     },
     onError: (e) => {
-      console.error(e);
-      return "Oops, an error occurred!";
+      console.error("Stream error:", e);
+
+      // Handle AI service rate limits specifically
+      if (
+        isError(e) &&
+        (e.message.includes("quota") ||
+          e.message.includes("rate limit") ||
+          e.message.includes("429"))
+      ) {
+        return "AI service is currently rate limited. Please try again in a few minutes.";
+      }
+
+      return "An error occurred while processing your request. Please try again.";
     },
   });
 }

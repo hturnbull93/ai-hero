@@ -100,7 +100,17 @@ const checkRobotsTxt = async (url: string): Promise<boolean> => {
     const robots = robotsParser(robotsUrl, robotsTxt);
 
     // Use a common crawler user agent
-    return robots.isAllowed(url, "LinkedInBot") ?? true;
+    // Try a more permissive or common user agent if "LinkedInBot" is blocked.
+    // We'll check with "Googlebot" first, then "Bingbot", then fallback to "LinkedInBot".
+    // If none are explicitly allowed, default to true (assume allowed).
+    const userAgents = ["Googlebot", "Bingbot", "LinkedInBot"];
+    for (const agent of userAgents) {
+      const allowed = robots.isAllowed(url, agent);
+      if (allowed !== undefined) {
+        return allowed;
+      }
+    }
+    return true;
   } catch (error) {
     // If there's an error checking robots.txt, assume crawling is allowed
     return true;
