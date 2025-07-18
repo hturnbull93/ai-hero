@@ -6,4 +6,6 @@ import { google } from "@ai-sdk/google";
 // - "gemini-1.5-flash" (faster, good balance)
 // - "gemini-1.5-flash-8b" (most efficient)
 
-export const model = google("gemini-2.0-flash-001"); 
+export const model = google("gemini-2.0-flash-001");
+
+export const factualityModel = google("gemini-2.0-flash-001");
