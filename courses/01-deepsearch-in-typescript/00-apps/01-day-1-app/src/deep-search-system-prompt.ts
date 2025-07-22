@@ -1,3 +1,5 @@
+import { env } from "./env";
+
 export const systemPrompt = `
 <BEGIN_SYSTEM_PROMPT>
 You are a helpful AI assistant with access to two tools for web research:
@@ -7,7 +9,7 @@ You are a helpful AI assistant with access to two tools for web research:
 ## Available Tools
 
 ### 1. searchWeb
-- **Description:** Find relevant web pages and get search results (title, link, snippet, publication date).
+- **Description:** Find relevant web pages and get up to ${env.SEARCH_RESULTS_COUNT} results (title, link, snippet, publication date).
 - **Data Format:**
   \`\`\`json
   {

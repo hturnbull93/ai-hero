@@ -9,6 +9,7 @@ import { searchSerper } from "~/serper";
 import { bulkCrawlWebsites } from "~/scraper";
 import { cacheWithRedis } from "~/server/redis/redis";
 import { systemPrompt } from "./deep-search-system-prompt";
+import { env } from "~/env";
 
 // Cache the scrapePages function
 const scrapePages = cacheWithRedis(
@@ -36,7 +37,7 @@ export const streamFromDeepSearch = (opts: {
         }),
         execute: async ({ query }, { abortSignal }) => {
           const results = await searchSerper(
-            { q: query, num: 10 },
+            { q: query, num: env.SEARCH_RESULTS_COUNT },
             abortSignal,
           );
 
