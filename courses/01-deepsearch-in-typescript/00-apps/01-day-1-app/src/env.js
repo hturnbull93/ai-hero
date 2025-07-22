@@ -25,6 +25,7 @@ export const env = createEnv({
       .default("development"),
     EVAL_MODE: z.boolean().default(false),
     SKIP_CACHE_IN_EVAL: z.boolean().default(false),
+    EVAL_DATASET: z.enum(["dev", "ci", "regression"]).default("dev"),
   },
 
   /**
@@ -52,6 +53,7 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     EVAL_MODE: process.env.EVAL_MODE === "true",
     SKIP_CACHE_IN_EVAL: process.env.SKIP_CACHE_IN_EVAL === "true",
+    EVAL_DATASET: process.env.EVAL_DATASET,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
