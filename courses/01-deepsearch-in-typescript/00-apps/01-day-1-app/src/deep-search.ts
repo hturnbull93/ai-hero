@@ -5,11 +5,13 @@ import {
   type StreamTextResult,
 } from "ai";
 import { runAgentLoop } from "./run-agent-loop";
+import type { MessageAnnotation } from "./types";
 
 export const streamFromDeepSearch = async (opts: {
   messages: Message[];
   onFinish: Parameters<typeof streamText>[0]["onFinish"];
   telemetry: TelemetrySettings;
+  writeMessageAnnotation?: (annotation: MessageAnnotation) => void;
 }): Promise<StreamTextResult<{}, string>> => {
   // Get the user's question from the messages
   const userQuestion = opts.messages[opts.messages.length - 1]?.content;
@@ -18,7 +20,9 @@ export const streamFromDeepSearch = async (opts: {
   }
 
   // Run the agent loop and wait for the result
-  const result = await runAgentLoop(userQuestion);
+  const result = await runAgentLoop(userQuestion, {
+    writeMessageAnnotation: opts.writeMessageAnnotation ?? (() => {}),
+  });
   
   return result;
 };

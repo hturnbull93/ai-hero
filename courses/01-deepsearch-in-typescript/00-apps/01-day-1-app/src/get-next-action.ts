@@ -1,33 +1,8 @@
-import { z } from "zod";
 import { generateObject } from "ai";
 import { model } from "~/models";
 import type { Action } from "~/types";
+import { actionSchema } from "~/types";
 import type { SystemContext } from "~/system-context";
-
-// Schema for structured output - using a single object with optional fields
-// instead of z.union to avoid LLM parsing issues with oneOf
-export const actionSchema = z.object({
-  type: z
-    .enum(["search", "scrape", "answer"])
-    .describe(
-      `The type of action to take.
-      - 'search': Search the web for more information.
-      - 'scrape': Scrape a URL.
-      - 'answer': Answer the user's question and complete the loop.`,
-    ),
-  query: z
-    .string()
-    .describe(
-      "The query to search for. Required if type is 'search'.",
-    )
-    .optional(),
-  urls: z
-    .array(z.string())
-    .describe(
-      "The URLs to scrape. Required if type is 'scrape'.",
-    )
-    .optional(),
-});
 
 export const getNextAction = async (
   context: SystemContext,
@@ -86,18 +61,32 @@ ${context.getScrapeHistory()}
     if (!action.query) {
       throw new Error("Search action requires a query");
     }
-    return { type: "search", query: action.query };
+    return { 
+      type: "search", 
+      query: action.query,
+      title: action.title,
+      reasoning: action.reasoning
+    };
   }
 
   if (action.type === "scrape") {
     if (!action.urls || action.urls.length === 0) {
       throw new Error("Scrape action requires URLs");
     }
-    return { type: "scrape", urls: action.urls };
+    return { 
+      type: "scrape", 
+      urls: action.urls,
+      title: action.title,
+      reasoning: action.reasoning
+    };
   }
 
   if (action.type === "answer") {
-    return { type: "answer" };
+    return { 
+      type: "answer",
+      title: action.title,
+      reasoning: action.reasoning
+    };
   }
 
   throw new Error(`Invalid action type: ${action.type}`);

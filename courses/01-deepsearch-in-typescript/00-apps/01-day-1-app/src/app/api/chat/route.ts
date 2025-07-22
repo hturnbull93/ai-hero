@@ -11,6 +11,8 @@ import {
 import { upsertChat } from "~/server/db/queries";
 import { streamFromDeepSearch } from "~/deep-search";
 import { isError } from "~/utils";
+import type { MessageAnnotation } from "~/types";
+import { messageAnnotationSchema } from "~/types";
 
 const langfuse = new Langfuse({
   environment: env.NODE_ENV,
@@ -118,6 +120,11 @@ export async function POST(request: Request) {
           metadata: {
             langfuseTraceId: trace.id,
           },
+        },
+        writeMessageAnnotation: (annotation: MessageAnnotation) => {
+          // Use Zod to ensure we have a properly serializable object
+          const serializedAnnotation = messageAnnotationSchema.parse(annotation);
+          dataStream.writeMessageAnnotation(serializedAnnotation);
         },
         onFinish: async ({ response }) => {
           try {

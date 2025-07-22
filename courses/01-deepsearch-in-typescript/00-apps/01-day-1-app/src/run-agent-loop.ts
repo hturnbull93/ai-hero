@@ -3,7 +3,7 @@ import { SystemContext } from "./system-context";
 import { searchSerper } from "./serper";
 import { bulkCrawlWebsites } from "./scraper";
 import { answerQuestion } from "./answer-question";
-import type { Action } from "./types";
+import type { Action, MessageAnnotation } from "./types";
 import type { StreamTextResult } from "ai";
 
 const searchWeb = async (query: string) => {
@@ -39,7 +39,12 @@ const scrapeUrl = async (urls: string[]) => {
   }));
 };
 
-export const runAgentLoop = async (userQuestion: string): Promise<StreamTextResult<{}, string>> => {
+export const runAgentLoop = async (
+  userQuestion: string,
+  opts: {
+    writeMessageAnnotation: (annotation: MessageAnnotation) => void;
+  }
+): Promise<StreamTextResult<{}, string>> => {
   // A persistent container for the state of our system
   const ctx = new SystemContext(userQuestion);
 
@@ -48,6 +53,12 @@ export const runAgentLoop = async (userQuestion: string): Promise<StreamTextResu
   while (!ctx.shouldStop()) {
     // We choose the next action based on the state of our system
     const nextAction: Action = await getNextAction(ctx);
+
+    // Send annotation about the action we're about to take
+    opts.writeMessageAnnotation({
+      type: "NEW_ACTION",
+      action: nextAction,
+    });
 
     // We execute the action and update the state of our system
     if (nextAction.type === "search") {

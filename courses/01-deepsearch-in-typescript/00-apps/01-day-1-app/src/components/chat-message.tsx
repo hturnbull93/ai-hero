@@ -1,5 +1,8 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import type { Message } from "ai";
+import { ReasoningSteps } from "./reasoning-steps";
+import type { MessageAnnotation } from "~/types";
+import { messageAnnotationSchema } from "~/types";
 
 export type MessagePart = NonNullable<Message["parts"]>[number];
 
@@ -7,6 +10,19 @@ interface ChatMessageProps {
   message: Message;
   userName: string;
 }
+
+// Helper function to safely parse annotations using Zod
+const parseAnnotations = (annotations: unknown[]): MessageAnnotation[] => {
+  return annotations
+    .map((annotation) => {
+      try {
+        return messageAnnotationSchema.parse(annotation);
+      } catch {
+        return null;
+      }
+    })
+    .filter((annotation): annotation is MessageAnnotation => annotation !== null);
+};
 
 const components: Components = {
   // Override default elements with custom styling
@@ -98,6 +114,9 @@ const MessagePartRenderer = ({ part }: { part: MessagePart }) => {
 export const ChatMessage = ({ message, userName }: ChatMessageProps) => {
   const isAI = message.role === "assistant";
 
+  // Extract annotations from the message
+  const annotations = message.annotations ? parseAnnotations(message.annotations) : [];
+
   return (
     <div className="mb-6">
       <div
@@ -108,6 +127,11 @@ export const ChatMessage = ({ message, userName }: ChatMessageProps) => {
         <p className="mb-2 text-sm font-semibold text-gray-400">
           {isAI ? "AI" : userName}
         </p>
+
+        {/* Show reasoning steps for AI messages */}
+        {isAI && annotations.length > 0 && (
+          <ReasoningSteps annotations={annotations} />
+        )}
 
         <div className="prose prose-invert max-w-none">
           {message.parts && message.parts.length > 0 ? (
