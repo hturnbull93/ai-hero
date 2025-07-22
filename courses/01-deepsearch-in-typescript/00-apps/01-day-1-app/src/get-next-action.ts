@@ -4,9 +4,16 @@ import type { Action } from "~/types";
 import { actionSchema } from "~/types";
 import type { SystemContext } from "~/system-context";
 
+interface GetNextActionOptions {
+  langfuseTraceId?: string;
+}
+
 export const getNextAction = async (
   context: SystemContext,
+  opts: GetNextActionOptions
 ): Promise<Action> => {
+  const { langfuseTraceId } = opts;
+  
   const result = await generateObject({
     model,
     schema: actionSchema,
@@ -52,6 +59,15 @@ ${context.getQueryHistory()}
 
 ${context.getScrapeHistory()}
 `,
+    ...(langfuseTraceId && {
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: "get-next-action",
+        metadata: {
+          langfuseTraceId,
+        },
+      },
+    }),
   });
 
   const action = result.object;

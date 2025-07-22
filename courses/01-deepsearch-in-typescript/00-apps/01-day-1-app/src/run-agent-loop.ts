@@ -43,6 +43,7 @@ export const runAgentLoop = async (
   userQuestion: string,
   opts: {
     writeMessageAnnotation: (annotation: MessageAnnotation) => void;
+    langfuseTraceId?: string;
   }
 ): Promise<StreamTextResult<{}, string>> => {
   // A persistent container for the state of our system
@@ -52,7 +53,7 @@ export const runAgentLoop = async (
   // or we've taken 10 actions
   while (!ctx.shouldStop()) {
     // We choose the next action based on the state of our system
-    const nextAction: Action = await getNextAction(ctx);
+    const nextAction: Action = await getNextAction(ctx, { langfuseTraceId: opts.langfuseTraceId });
 
     // Send annotation about the action we're about to take
     opts.writeMessageAnnotation({
@@ -68,7 +69,7 @@ export const runAgentLoop = async (
       const result = await scrapeUrl(nextAction.urls);
       ctx.reportScrapes(result);
     } else if (nextAction.type === "answer") {
-      return answerQuestion(ctx);
+      return answerQuestion(ctx, { langfuseTraceId: opts.langfuseTraceId });
     }
 
     // We increment the step counter
@@ -77,5 +78,5 @@ export const runAgentLoop = async (
 
   // If we've taken 10 actions and still don't have an answer,
   // we ask the LLM to give its best attempt at an answer
-  return answerQuestion(ctx, { isFinal: true });
+  return answerQuestion(ctx, { isFinal: true, langfuseTraceId: opts.langfuseTraceId });
 }; 

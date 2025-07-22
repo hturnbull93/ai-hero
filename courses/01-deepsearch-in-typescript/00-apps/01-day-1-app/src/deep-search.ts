@@ -10,7 +10,7 @@ import type { MessageAnnotation } from "./types";
 export const streamFromDeepSearch = async (opts: {
   messages: Message[];
   onFinish: Parameters<typeof streamText>[0]["onFinish"];
-  telemetry: TelemetrySettings;
+  langFuseTraceId: string | undefined;
   writeMessageAnnotation?: (annotation: MessageAnnotation) => void;
 }): Promise<StreamTextResult<{}, string>> => {
   // Get the user's question from the messages
@@ -22,6 +22,7 @@ export const streamFromDeepSearch = async (opts: {
   // Run the agent loop and wait for the result
   const result = await runAgentLoop(userQuestion, {
     writeMessageAnnotation: opts.writeMessageAnnotation ?? (() => {}),
+    langfuseTraceId: opts.langFuseTraceId,
   });
   
   return result;
@@ -31,9 +32,7 @@ export async function askDeepSearch(messages: Message[]) {
   const result = await streamFromDeepSearch({
     messages,
     onFinish: () => {}, // just a stub
-    telemetry: {
-      isEnabled: false,
-    },
+    langFuseTraceId: undefined,
   });
 
   // Consume the stream - without this,

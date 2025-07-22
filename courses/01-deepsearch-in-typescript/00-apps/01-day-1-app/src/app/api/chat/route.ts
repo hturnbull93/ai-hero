@@ -114,13 +114,7 @@ export async function POST(request: Request) {
       // Wait for the result
       const result = await streamFromDeepSearch({
         messages,
-        telemetry: {
-          isEnabled: true,
-          functionId: `agent`,
-          metadata: {
-            langfuseTraceId: trace.id,
-          },
-        },
+        langFuseTraceId: trace.id,
         writeMessageAnnotation: (annotation: MessageAnnotation) => {
           // Use Zod to ensure we have a properly serializable object
           const serializedAnnotation = messageAnnotationSchema.parse(annotation);

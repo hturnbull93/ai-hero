@@ -58,13 +58,13 @@ export const actionSchema = z.object({
   query: z
     .string()
     .describe(
-      "The query to search for. Required if type is 'search'.",
+      "The query to search for. Only required if type is 'search'.",
     )
     .optional(),
   urls: z
     .array(z.string())
     .describe(
-      "The URLs to scrape. Required if type is 'scrape'.",
+      "The URLs to scrape. Only required if type is 'scrape'.",
     )
     .optional(),
 });

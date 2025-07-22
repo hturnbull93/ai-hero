@@ -5,13 +5,14 @@ import { markdownJoinerTransform } from "~/markdown-joiner-transform";
 
 interface AnswerOptions {
   isFinal?: boolean;
+  langfuseTraceId?: string;
 }
 
 export const answerQuestion = (
   context: SystemContext,
-  options: AnswerOptions = {}
+  options: AnswerOptions
 ): StreamTextResult<{}, string> => {
-  const { isFinal = false } = options;
+  const { isFinal = false, langfuseTraceId } = options;
   const userQuestion = context.getInitialQuestion();
 
   const systemPrompt = `You are a helpful assistant that answers questions based on information gathered from web searches and scraped content.
@@ -108,5 +109,14 @@ Please provide a comprehensive answer to the user's question based on the availa
         chunking: "line",
       }),
     ],
+    ...(langfuseTraceId && {
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: "answer-question",
+        metadata: {
+          langfuseTraceId,
+        },
+      },
+    }),
   });
 }; 
