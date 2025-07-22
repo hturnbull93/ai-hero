@@ -6,9 +6,9 @@ import { google } from "@ai-sdk/google";
 // - "gemini-1.5-flash" (faster, good balance)
 // - "gemini-1.5-flash-8b" (most efficient)
 
-// Switch to 1.5-flash to avoid 2.0-flash rate limits
-// export const model = google("gemini-2.0-flash-001");
-export const model = google("gemini-2.0-flash-lite");
+// I have been using 2.0-flash-001 for a while now, but it's been rate limited.
+export const model = google("gemini-2.0-flash-001");
+// export const model = google("gemini-2.0-flash-lite");
 
-// export const factualityModel = google("gemini-2.0-flash-001");
-export const factualityModel = google("gemini-2.0-flash-lite");
+export const factualityModel = google("gemini-2.0-flash-001");
+// export const factualityModel = google("gemini-2.0-flash-lite");
