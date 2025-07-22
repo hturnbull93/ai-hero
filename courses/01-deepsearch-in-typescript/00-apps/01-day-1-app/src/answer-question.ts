@@ -1,4 +1,4 @@
-import { generateText } from "ai";
+import { streamText, type StreamTextResult } from "ai";
 import { model } from "~/models";
 import type { SystemContext } from "~/system-context";
 
@@ -6,10 +6,10 @@ interface AnswerOptions {
   isFinal?: boolean;
 }
 
-export const answerQuestion = async (
+export const answerQuestion = (
   context: SystemContext,
   options: AnswerOptions = {}
-) => {
+): StreamTextResult<{}, string> => {
   const { isFinal = false } = options;
   const userQuestion = context.getInitialQuestion();
 
@@ -20,27 +20,68 @@ Your task is to provide a comprehensive and accurate answer to the user's questi
 ${isFinal ? "IMPORTANT: You may not have all the information needed to answer the question completely. Make your best effort to provide a helpful answer based on the available information, and clearly indicate any limitations or uncertainties." : ""}
 
 Guidelines:
-- Use the search results and scraped content to provide accurate information
-- Cite sources when possible
+- Use the query results and scrape results to provide accurate information
+- Cite sources when possible. Always include at least one source in your answer.
 - Be comprehensive but concise
 - If information is conflicting, acknowledge the conflicts
-- If you don't have enough information, say so clearly`;
+- If you don't have enough information, say so clearly
+
+## Link Formatting Rules
+
+Make links both functional and informative for users. The link text should give users a clear idea of what they'll find when they click the link. 
+
+- Always wrap URLs in proper Markdown link syntax: \`[descriptive text](URL)\`
+- Use meaningful, descriptive text for the link rather than generic words like "here" or "link"
+- Include publication dates when available, adding the date in parentheses: \`[Title (YYYY-MM-DD)](URL)\`
+- Include the full URL including the protocol (https://)
+- Make the link text informative about what the user will find at that URL
+- Never leave URLs bare in your responses
+- Never use footnote-style references for links
+
+### CORRECT Examples
+
+- "You can learn more about cooking at [Allrecipes](https://www.allrecipes.com)."
+- "Check out [National Geographic](https://www.nationalgeographic.com) for nature photography."
+- "For travel information, visit [Lonely Planet](https://www.lonelyplanet.com)."
+- "Read about science at [Scientific American](https://www.scientificamerican.com)."
+- "Find health tips on [Mayo Clinic](https://www.mayoclinic.org)."
+
+### CORRECT Examples with Publication Dates
+
+- "Read the [COVID-19 Vaccine Development (2020-12-11)](https://www.nature.com/articles/d41586-020-03626-1)."
+- "Check out [NASA Perseverance Landing (2021-02-18)](https://mars.nasa.gov/mars2020/)."
+- "Read about [Climate Change Report (2021-08-09)](https://www.ipcc.ch/report/ar6/wg1/)."
+- "Explore [SpaceX Starship Launch (2023-04-20)](https://www.spacex.com/vehicles/starship/)."
+- "Read the [Nobel Prize in Physics (2022-10-04)](https://www.nobelprize.org/prizes/physics/2022/summary/)."
+
+### INCORRECT Examples (DO NOT USE)
+
+- "Visit https://www.google.com for search" (bare URL)
+- "Google is a search engine[^1]. [^1]: https://www.google.com" (footnote style)
+- "Check out [@https://github.com](https://github.com)" (unnecessary @ symbol)
+- "More info at [link](https://example.com)" (generic "link" text)
+- "See [here](https://example.com) for details" (generic "here" text)
+`;
 
   const prompt = `User Question: ${userQuestion}
 
 Available Information:
 
-${context.getQueryHistory()}
+${
+// Each is prefixed with `## Query:`
+context.getQueryHistory()
+}
 
-${context.getScrapeHistory()}
+${
+// Each is prefixed with `## Scrape:`
+context.getScrapeHistory()
+}
 
 Please provide a comprehensive answer to the user's question based on the available information.`;
 
-  const result = await generateText({
+  return streamText({
     model,
     system: systemPrompt,
     prompt,
   });
-
-  return result.text;
 }; 

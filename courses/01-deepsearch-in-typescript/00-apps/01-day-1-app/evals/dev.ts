@@ -161,19 +161,19 @@ These prices are taken from the Warhammer.com website, other retailers may have 
       {
         id: "multi-hop-reasoning",
         role: "user",
-        content: "What is the cheapest cost of subscribing to Incident.io's plan for 50 users, with On-call, for 6 months?",
+        content: "What is the cheapest cost of subscribing to Incident.io's plan for 50 users, with On-call, for a year?",
       },
     ],
     expected: `
-The cheapest plan is the Team plan, at $19 per user per month.
+The cheapest plan is the Team plan, at $15 per user per month.
 
 On-call is an additional $10 per user per month.
 
-The total cost per user per month is $19 + $10 = $29.
+The total cost per user per month is $15 + $10 = $25.
 
-The total cost per user per 6 months is $29 * 6 = $174.
+The total cost per user per year is $25 * 12 = $300.
 
-The total cost for 50 users is $174 * 50 = $8,700.
+The total cost for 50 users is $300 * 50 = $15,000.
 `,
   },
 ]; 

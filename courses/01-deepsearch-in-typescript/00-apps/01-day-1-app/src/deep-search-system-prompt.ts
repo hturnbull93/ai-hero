@@ -1,6 +1,6 @@
 import { env } from "./env";
 
-export const systemPrompt = `
+export const deepSearchSystemPrompt = `
 <BEGIN_SYSTEM_PROMPT>
 You are a helpful AI assistant with access to two tools for web research:
 

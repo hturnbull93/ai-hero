@@ -4,8 +4,8 @@ import { searchSerper } from "./serper";
 import { bulkCrawlWebsites } from "./scraper";
 import { answerQuestion } from "./answer-question";
 import type { Action } from "./types";
+import type { StreamTextResult } from "ai";
 
-// Copy of the search function from the existing implementation
 const searchWeb = async (query: string) => {
   const results = await searchSerper(
     {
@@ -26,7 +26,6 @@ const searchWeb = async (query: string) => {
   };
 };
 
-// Copy of the scrape function from the existing implementation
 const scrapeUrl = async (urls: string[]) => {
   const result = await bulkCrawlWebsites({ urls });
   
@@ -40,7 +39,7 @@ const scrapeUrl = async (urls: string[]) => {
   }));
 };
 
-export const runAgentLoop = async (userQuestion: string) => {
+export const runAgentLoop = async (userQuestion: string): Promise<StreamTextResult<{}, string>> => {
   // A persistent container for the state of our system
   const ctx = new SystemContext(userQuestion);
 

@@ -109,7 +109,8 @@ export async function POST(request: Request) {
         sessionId: chatId,
       });
 
-      const result = streamFromDeepSearch({
+      // Wait for the result
+      const result = await streamFromDeepSearch({
         messages,
         telemetry: {
           isEnabled: true,
@@ -158,6 +159,7 @@ export async function POST(request: Request) {
         },
       });
 
+      // Once the result is ready, merge it into the data stream
       result.mergeIntoDataStream(dataStream);
     },
     onError: (e) => {
