@@ -45,6 +45,8 @@ Based on the context, determine the next action to take:
 
 Choose the most appropriate action based on the current state of the conversation and the information available.
 
+User's Question: ${context.getInitialQuestion()}
+
 You have access to the following context from previous actions:
 
 ${context.getQueryHistory()}
