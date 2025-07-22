@@ -10,10 +10,10 @@ interface AnswerOptions {
 
 export const answerQuestion = (
   context: SystemContext,
-  options: AnswerOptions
+  options: AnswerOptions = {}
 ): StreamTextResult<{}, string> => {
   const { isFinal = false, langfuseTraceId } = options;
-  const userQuestion = context.getInitialQuestion();
+  const latestUserMessage = context.getLatestUserMessage();
 
   const systemPrompt = `You are a helpful assistant that answers questions based on information gathered from web searches and scraped content.
 
@@ -27,6 +27,7 @@ Guidelines:
 - Be comprehensive but concise
 - If information is conflicting, acknowledge the conflicts
 - If you don't have enough information, say so clearly
+- Consider the full conversation context when answering follow-up questions
 
 ## Link Formatting Rules
 
@@ -82,19 +83,15 @@ Sven-Göran Eriksson (born February 5, 1948, in Sunne, Sweden) was a Swedish foo
 \'\'\'
 `;
 
-  const prompt = `User Question: ${userQuestion}
+  const prompt = `
+## User's Question
+${latestUserMessage}
 
-Available Information:
+## Message History
+${context.getMessageHistory()}
 
-${
-// Each is prefixed with `## Query:`
-context.getQueryHistory()
-}
-
-${
-// Each is prefixed with `## Scrape:`
-context.getScrapeHistory()
-}
+## Information Gathered
+${context.getInformation()}
 
 Please provide a comprehensive answer to the user's question based on the available information.`;
 

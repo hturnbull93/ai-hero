@@ -10,7 +10,7 @@ interface GetNextActionOptions {
 
 export const getNextAction = async (
   context: SystemContext,
-  opts: GetNextActionOptions
+  opts: GetNextActionOptions = {}
 ): Promise<Action> => {
   const { langfuseTraceId } = opts;
   
@@ -26,39 +26,20 @@ You are a helpful assistant that can search the web, scrape a URL, or answer the
     prompt: `
 You must decide the next action to take, based on the information available so far. Choose only one of the following actions:
 
-1. **search**  
-   - Use this if you need more information to answer the user's question.
-   - Provide a specific search query.
-   - Tips:
-     - Do not make assumptions, instead search for the information.
-     - If you don't have enough information yet, choose to search for the information.
-     - If the user asks for "up to date", "recent", "latest", or "current" information, add date-related keywords to your query (e.g., "${new Date().toISOString().split('T')[0]}", "latest", "recent", "today", "this week", "this month", "this year").
-     - If the user's request mentions a specific person, company, or organization, include their name in your query. Prefer results from their official website.
+1. **search** - Search the web for more information about the user's question
+2. **scrape** - Scrape content from specific URLs that have been found
+3. **answer** - Provide a final answer to the user's question
 
-2. **scrape**  
-   - Use this if you have found relevant URLs that should be scraped for more detailed content.
-   - Provide the URLs to scrape.
-   - Tips:
-     - If the user's request mentions a specific person, company, or organization, prefer URLs from their official website.
+## Current Information Available:
+${context.getInformation()}
 
-3. **answer**  
-   - Use this if you have enough information to provide a comprehensive answer to the user's question.
+## Message History:
+${context.getMessageHistory()}
 
-**Instructions:**  
-- Carefully review the current state of the conversation and the information available.
-- Select the single most appropriate action: "search", "scrape", or "answer".
-- If you select "search", provide a specific query.
-- If you select "scrape", provide the URLs to scrape.
-- If you select "answer", you do not need to provide any additional fields.
+## Latest User Message:
+${context.getLatestUserMessage()}
 
-User's Question: ${context.getInitialQuestion()}
-
-You have access to the following context from previous actions:
-
-${context.getQueryHistory()}
-
-${context.getScrapeHistory()}
-`,
+Based on the available information and conversation context, what should be the next action?`,
     ...(langfuseTraceId && {
       experimental_telemetry: {
         isEnabled: true,

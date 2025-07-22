@@ -1,3 +1,5 @@
+import type { Message } from "ai";
+
 type QueryResultSearchResult = {
   date: string;
   title: string;
@@ -31,9 +33,9 @@ export class SystemContext {
   private step = 0;
 
   /**
-   * The initial question from the user
+   * The message history
    */
-  private initialQuestion: string;
+  private messageHistory: Message[];
 
   /**
    * The history of all queries searched
@@ -45,51 +47,98 @@ export class SystemContext {
    */
   private scrapeHistory: ScrapeResult[] = [];
 
-  constructor(initialQuestion: string) {
-    this.initialQuestion = initialQuestion;
+  constructor(messages: Message[]) {
+    this.messageHistory = messages;
   }
 
-  shouldStop() {
-    return this.step >= 10;
+  /**
+   * Get the initial question from the message history
+   */
+  getInitialQuestion(): string {
+    // Find the first user message
+    const firstUserMessage = this.messageHistory.find(
+      (message) => message.role === "user"
+    );
+    return firstUserMessage?.content || "";
   }
 
-  incrementStep() {
+  /**
+   * Get the latest user message from the message history
+   */
+  getLatestUserMessage(): string {
+    // Find the last user message
+    for (let i = this.messageHistory.length - 1; i >= 0; i--) {
+      const message = this.messageHistory[i];
+      if (message && message.role === "user") {
+        return message.content;
+      }
+    }
+    return "";
+  }
+
+  /**
+   * Get the full message history as a formatted string
+   */
+  getMessageHistory(): string {
+    return this.messageHistory
+      .map((message) => {
+        const role = message.role === "user" ? "User" : "Assistant";
+        return `<${role}>${message.content}</${role}>`})
+      .join("\n\n");
+  }
+
+  /**
+   * Get the current step
+   */
+  getStep(): number {
+    return this.step;
+  }
+
+  /**
+   * Increment the step counter
+   */
+  incrementStep(): void {
     this.step++;
   }
 
-  getInitialQuestion(): string {
-    return this.initialQuestion;
+  /**
+   * Check if we should stop the loop
+   */
+  shouldStop(): boolean {
+    return this.step >= 10;
   }
 
-  reportQueries(queries: QueryResult[]) {
+  /**
+   * Report queries that have been searched
+   */
+  reportQueries(queries: QueryResult[]): void {
     this.queryHistory.push(...queries);
   }
 
-  reportScrapes(scrapes: ScrapeResult[]) {
+  /**
+   * Report scrapes that have been performed
+   */
+  reportScrapes(scrapes: ScrapeResult[]): void {
     this.scrapeHistory.push(...scrapes);
   }
 
-  getQueryHistory(): string {
-    return this.queryHistory
-      .map((query) =>
-        [
-          `## Query: "${query.query}"`,
-          ...query.results.map(toQueryResult),
-        ].join("\n\n"),
-      )
+  /**
+   * Get all the information we have gathered so far
+   */
+  getInformation(): string {
+    const queryInfo = this.queryHistory
+      .map((query) => {
+        const results = query.results.map(toQueryResult).join("\n\n");
+        return `## Search Results for "${query.query}"\n\n${results}`;
+      })
       .join("\n\n");
-  }
 
-  getScrapeHistory(): string {
-    return this.scrapeHistory
-      .map((scrape) =>
-        [
-          `## Scrape: "${scrape.url}"`,
-          `<scrape_result>`,
-          scrape.result,
-          `</scrape_result>`,
-        ].join("\n\n"),
-      )
+    const scrapeInfo = this.scrapeHistory
+      .map((scrape) => {
+        return `## Scraped Content from ${scrape.url}\n\n${scrape.result}`;
+      })
       .join("\n\n");
+
+    return [queryInfo, scrapeInfo].filter(Boolean).join("\n\n");
   }
 } 

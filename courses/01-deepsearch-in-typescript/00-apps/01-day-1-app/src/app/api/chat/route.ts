@@ -114,7 +114,7 @@ export async function POST(request: Request) {
       // Wait for the result
       const result = await streamFromDeepSearch({
         messages,
-        langFuseTraceId: trace.id,
+        langfuseTraceId: trace.id,
         writeMessageAnnotation: (annotation: MessageAnnotation) => {
           // Use Zod to ensure we have a properly serializable object
           const serializedAnnotation = messageAnnotationSchema.parse(annotation);
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
             });
 
             // Save the complete conversation to the database
-            const saveConversationSpan = trace.span({
+            const saveMessageSpan = trace.span({
               name: "upsert-chat-after-stream",
               input: {
                 userId: session.user.id,
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
               messages: updatedMessages,
             });
 
-            saveConversationSpan.end({
+            saveMessageSpan.end({
               output: saveResult,
             });
 

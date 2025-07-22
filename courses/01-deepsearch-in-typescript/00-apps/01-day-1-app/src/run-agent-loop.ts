@@ -4,7 +4,7 @@ import { searchSerper } from "./serper";
 import { bulkCrawlWebsites } from "./scraper";
 import { answerQuestion } from "./answer-question";
 import type { Action, MessageAnnotation } from "./types";
-import type { StreamTextResult } from "ai";
+import type { StreamTextResult, Message } from "ai";
 
 const searchWeb = async (query: string) => {
   const results = await searchSerper(
@@ -40,14 +40,14 @@ const scrapeUrl = async (urls: string[]) => {
 };
 
 export const runAgentLoop = async (
-  userQuestion: string,
+  messages: Message[],
   opts: {
     writeMessageAnnotation: (annotation: MessageAnnotation) => void;
     langfuseTraceId?: string;
   }
 ): Promise<StreamTextResult<{}, string>> => {
   // A persistent container for the state of our system
-  const ctx = new SystemContext(userQuestion);
+  const ctx = new SystemContext(messages);
 
   // A loop that continues until we have an answer
   // or we've taken 10 actions
