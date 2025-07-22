@@ -1,6 +1,7 @@
-import { streamText, type StreamTextResult } from "ai";
+import { streamText, smoothStream, type StreamTextResult } from "ai";
 import { model } from "~/models";
 import type { SystemContext } from "~/system-context";
+import { markdownJoinerTransform } from "~/markdown-joiner-transform";
 
 interface AnswerOptions {
   isFinal?: boolean;
@@ -37,6 +38,7 @@ Make links both functional and informative for users. The link text should give 
 - Make the link text informative about what the user will find at that URL
 - Never leave URLs bare in your responses
 - Never use footnote-style references for links
+- If you are providing several links, format them in a bulleted list
 
 ### CORRECT Examples
 
@@ -83,5 +85,12 @@ Please provide a comprehensive answer to the user's question based on the availa
     model,
     system: systemPrompt,
     prompt,
+    experimental_transform: [
+      markdownJoinerTransform,
+      smoothStream({
+        delayInMs: 150,
+        chunking: "line",
+      }),
+    ],
   });
 }; 
