@@ -213,7 +213,7 @@ export const streams = createTable("streams", {
     .$defaultFn(() => crypto.randomUUID()),
   chatId: varchar("chat_id", { length: 255 })
     .notNull()
-    .references(() => chats.id),
+    .references(() => chats.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", {
     mode: "date",
     withTimezone: true,
