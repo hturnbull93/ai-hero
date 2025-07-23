@@ -10,7 +10,7 @@ import {
 } from "~/server/rate-limiting";
 import { upsertChat } from "~/server/db/queries";
 import { streamFromDeepSearch } from "~/deep-search";
-import { isError } from "~/utils";
+import { isError, generateChatTitle } from "~/utils";
 import type { MessageAnnotation } from "~/types";
 import { messageAnnotationSchema } from "~/types";
 
@@ -76,21 +76,25 @@ export async function POST(request: Request) {
         });
       }
 
-      // Create/update chat before streaming starts to protect against broken streams
-      // Generate a title from the first user message (take first 50 chars)
-      const firstUserMessage = messages.find((m) => m.role === "user");
-      const title =
-        typeof firstUserMessage?.content === "string"
-          ? firstUserMessage.content.slice(0, 50)
-          : "New Chat";
+      // Start title generation in parallel if this is a new chat
+      let titlePromise: Promise<string> | undefined;
+
+      if (isNewChat) {
+        titlePromise = generateChatTitle(messages);
+      } else {
+        titlePromise = Promise.resolve("");
+      }
 
       // Save the current messages to the database before starting the stream
+      // Use "Generating..." as temporary title for new chats
+      const tempTitle = "Generating...";
+      
       const upsertChatSpan = trace.span({
         name: "upsert-chat-before-stream",
         input: {
           userId: session.user.id,
           chatId,
-          title,
+          title: tempTitle,
           messageCount: messages.length,
         },
       });
@@ -98,7 +102,7 @@ export async function POST(request: Request) {
       const upsertResult = await upsertChat({
         userId: session.user.id,
         chatId,
-        title,
+        title: tempTitle,
         messages,
       });
 
@@ -141,13 +145,16 @@ export async function POST(request: Request) {
               lastMessage.annotations = annotations as any;
             }
 
+            // Resolve the title promise if it exists
+            const title = await titlePromise;
+
             // Save the complete conversation to the database
             const saveMessageSpan = trace.span({
               name: "upsert-chat-after-stream",
               input: {
                 userId: session.user.id,
                 chatId,
-                title,
+                title: title || tempTitle,
                 messageCount: updatedMessages.length,
               },
             });
@@ -155,13 +162,22 @@ export async function POST(request: Request) {
             const saveResult = await upsertChat({
               userId: session.user.id,
               chatId,
-              title,
               messages: updatedMessages,
+              ...(title ? { title } : {}), // Only save the title if it's not empty
             });
 
             saveMessageSpan.end({
               output: saveResult,
             });
+
+            // Send title update event to frontend if title was generated
+            if (title && title !== tempTitle) {
+              dataStream.writeData({
+                type: "TITLE_UPDATED",
+                chatId,
+                title,
+              });
+            }
 
             // Flush the Langfuse trace to the platform
             await langfuse.flushAsync();

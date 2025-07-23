@@ -9,7 +9,7 @@ import { ChatMessage } from "~/components/chat-message";
 import { SignInModal } from "~/components/sign-in-modal";
 import { ErrorMessage } from "~/components/error-message";
 import { useChatContext } from "~/components/chat-context";
-import { isNewChatCreated } from "~/utils";
+import { isNewChatCreated, isTitleUpdated } from "~/utils";
 import type { Message } from "ai";
 
 interface ChatProps {
@@ -24,8 +24,9 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showError, setShowError] = useState(false);
   const router = useRouter();
-  const { addChat } = useChatContext();
+  const { addChat, updateChat } = useChatContext();
   const hasHandledNewChat = useRef(false);
+  const processedTitleUpdates = useRef<Set<string>>(new Set());
   
   const {
     messages,
@@ -65,16 +66,11 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
     if (lastDataItem && isNewChatCreated(lastDataItem)) {
       hasHandledNewChat.current = true; // Mark as handled to prevent re-runs
       
+      
       // Add the new chat to the context
-      const firstUserMessage = messages.find((m) => m.role === "user");
-      const title =
-        typeof firstUserMessage?.content === "string"
-          ? firstUserMessage.content.slice(0, 50)
-          : "New Chat";
-
       addChat({
         id: lastDataItem.chatId,
-        title,
+        title: 'Generating...',
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -89,6 +85,25 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
       }
     }
   }, [data, router, addChat, isNewChat]);
+
+  // Listen for title updates
+  useEffect(() => {
+    if (!data?.length) return;
+    
+    // Process all data items but only update if we haven't processed this title update before
+    data.forEach((dataItem) => {
+      if (isTitleUpdated(dataItem)) {
+        const titleUpdateKey = `${dataItem.chatId}-${dataItem.title}`;
+        if (!processedTitleUpdates.current.has(titleUpdateKey)) {
+          processedTitleUpdates.current.add(titleUpdateKey);
+          updateChat(dataItem.chatId, {
+            title: dataItem.title,
+            updatedAt: new Date(),
+          });
+        }
+      }
+    });
+  }, [data, updateChat]);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

@@ -1,4 +1,4 @@
-import { and, eq, gte, sql, asc, desc } from "drizzle-orm";
+import { and, eq, gte, sql, asc, desc, type SQL } from "drizzle-orm";
 import { db } from "./index";
 import { users, userRequests, chats, messages } from "./schema";
 import type { Message } from "ai";
@@ -41,7 +41,7 @@ export async function createUserRequest(userId: string) {
 export async function upsertChat(opts: {
   userId: string;
   chatId: string;
-  title: string;
+  title?: string;
   messages: Message[];
 }) {
   const { userId, chatId, title, messages: messageList } = opts;
@@ -61,12 +61,12 @@ export async function upsertChat(opts: {
   return await db.transaction(async (tx) => {
     // Upsert the chat
     if (existingChat.length > 0) {
-      // Update existing chat
+      // Update existing chat - only update title if provided
       await tx
         .update(chats)
         .set({ 
-          title, 
-          updatedAt: sql`CURRENT_TIMESTAMP` 
+          updatedAt: sql`CURRENT_TIMESTAMP`,
+          ...(title ? { title } : {})
         })
         .where(eq(chats.id, chatId));
 
@@ -77,7 +77,7 @@ export async function upsertChat(opts: {
       await tx.insert(chats).values({
         id: chatId,
         userId,
-        title,
+        title: title ?? "Generating...",
       });
     }
 
