@@ -95,15 +95,15 @@ export class SystemContext {
     return this.searchHistory
       .map((search) =>
         [
-          `## Query: \"${search.query}\"`,
+          `## Query: "${search.query}"`,
           ...search.results.map((result) =>
             [
               `### ${result.date} - ${result.title}`,
               result.url,
               result.snippet,
-              `<scrape_result>`,
-              result.scrapedContent,
-              `</scrape_result>`,
+              `<summary_result>`,
+              result.summary,
+              `</summary_result>`,
             ].join("\n\n"),
           ),
         ].join("\n\n"),

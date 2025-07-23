@@ -4,12 +4,13 @@ import { searchSerper } from "./serper";
 import { bulkCrawlWebsites } from "./scraper";
 import { answerQuestion } from "./answer-question";
 import { type streamText } from "ai";
-import type { Action, MessageAnnotation } from "./types";
+import type { Action, MessageAnnotation, SearchResult } from "./types";
 import type { StreamTextResult, Message } from "ai";
 import type { Geo } from "@vercel/functions";
 import { env } from "./env";
+import { summariseURL } from "./summarise";
 
-const searchAndScrape = async (query: string) => {
+const searchScrapeAndSummarise = async (query: string, ctx: SystemContext, langfuseTraceId?: string) => {
   const numResults = env.SEARCH_RESULTS_COUNT || 3;
   const searchResult = await searchSerper(
     {
@@ -34,6 +35,32 @@ const searchAndScrape = async (query: string) => {
     }
   }
 
+  const conversationHistory = ctx.getMessageHistory();
+
+  // Summarise all results in parallel
+  const summaryMap = new Map<string, string>();
+  await Promise.all(results.map(async (result) => {
+    const scrapedContent = scrapedContentMap.get(result.link) ?? "";
+    if (!scrapedContent.trim()) {
+      summaryMap.set(result.link, "summarisation failed");
+      return;
+    }
+    const summary = await summariseURL({
+      conversationHistory,
+      scrapedContent,
+      searchMetadata: {
+        date: result.date ?? "",
+        title: result.title ?? "",
+        url: result.link ?? "",
+        snippet: result.snippet ?? "",
+      },
+      query,
+      langfuseTraceId,
+    });
+
+    summaryMap.set(result.link, summary);
+  }));
+
   return {
     query,
     results: results.map((result) => ({
@@ -42,6 +69,7 @@ const searchAndScrape = async (query: string) => {
       url: result.link,
       snippet: result.snippet,
       scrapedContent: scrapedContentMap.get(result.link) ?? "",
+      summary: summaryMap.get(result.link) ?? "summarisation failed",
     })),
   };
 };
@@ -74,8 +102,8 @@ export const runAgentLoop = async (
 
     // We execute the action and update the state of our system
     if (nextAction.type === "search") {
-      // Perform search and scrape in one step
-      const result = await searchAndScrape(nextAction.query);
+      // Perform search, scrape, and summarise in one step
+      const result = await searchScrapeAndSummarise(nextAction.query, ctx, opts.langfuseTraceId);
       ctx.reportSearch(result);
     } else if (nextAction.type === "answer") {
       return answerQuestion(ctx, {

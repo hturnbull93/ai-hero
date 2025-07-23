@@ -21,6 +21,7 @@ export interface SearchResult {
   url: string;
   snippet: string;
   scrapedContent: string;
+  summary: string; // LLM-generated summary
 }
 
 export interface SearchAction {
@@ -70,9 +71,10 @@ export const actionSchema = z.object({
         url: z.string(),
         snippet: z.string(),
         scrapedContent: z.string(),
+        summary: z.string(),
       })
     )
-    .describe("The search results, including scraped content. Only required if type is 'search'.")
+    .describe("The search results, including scraped content and summary. Only required if type is 'search'.")
     .optional(),
 });
 

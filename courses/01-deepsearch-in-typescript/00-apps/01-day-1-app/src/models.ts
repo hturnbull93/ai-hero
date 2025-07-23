@@ -14,3 +14,5 @@ export const factualityModel = google("gemini-2.0-flash-001");
 // export const factualityModel = google("gemini-2.0-flash-lite");
 
 export const generateChatTitleModel = google("gemini-1.5-flash");
+
+export const summarisationModel = google("gemini-2.0-flash-lite");
