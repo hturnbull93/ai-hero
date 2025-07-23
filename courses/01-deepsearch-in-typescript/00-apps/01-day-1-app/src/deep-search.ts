@@ -1,5 +1,5 @@
 import {
-  streamText,
+  type streamText,
   type Message,
   type StreamTextResult,
 } from "ai";

@@ -73,13 +73,13 @@ const extractArticleText = (html: string): string => {
   for (const selector of articleSelectors) {
     const element = $(selector);
     if (element.length) {
-      content = turndownService.turndown(element.html() || "");
+      content = turndownService.turndown(element.html() ?? "");
       break;
     }
   }
 
   if (!content) {
-    content = turndownService.turndown($("body").html() || "");
+    content = turndownService.turndown($("body").html() ?? "");
   }
 
   return content.trim();
@@ -111,7 +111,7 @@ const checkRobotsTxt = async (url: string): Promise<boolean> => {
       }
     }
     return true;
-  } catch (error) {
+  } catch (_error) {
     // If there's an error checking robots.txt, assume crawling is allowed
     return true;
   }

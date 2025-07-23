@@ -3,7 +3,7 @@ import { SystemContext } from "./system-context";
 import { searchSerper } from "./serper";
 import { bulkCrawlWebsites } from "./scraper";
 import { answerQuestion } from "./answer-question";
-import { streamText } from "ai";
+import { type streamText } from "ai";
 import type { Action, MessageAnnotation } from "./types";
 import type { StreamTextResult, Message } from "ai";
 import type { Geo } from "@vercel/functions";

@@ -63,7 +63,7 @@ export class SystemContext {
     const firstUserMessage = this.messageHistory.find(
       (message) => message.role === "user"
     );
-    return firstUserMessage?.content || "";
+    return firstUserMessage?.content ?? "";
   }
 
   /**

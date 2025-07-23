@@ -154,7 +154,10 @@ export async function POST(request: Request) {
             // Get the last message and add annotations to it
             const lastMessage = updatedMessages[updatedMessages.length - 1];
             if (lastMessage) {
-              lastMessage.annotations = annotations as any;
+              // Ensure annotations are serializable as JSONValue[]
+              lastMessage.annotations = annotations.map((annotation) =>
+                messageAnnotationSchema.parse(annotation)
+              );
             }
 
             // Resolve the title promise if it exists

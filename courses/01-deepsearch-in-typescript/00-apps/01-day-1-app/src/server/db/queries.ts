@@ -1,8 +1,7 @@
-import { and, eq, gte, sql, asc, desc, type SQL } from "drizzle-orm";
+import { and, eq, gte, sql, asc, desc } from "drizzle-orm";
 import { db } from "./index";
 import { users, userRequests, chats, messages } from "./schema";
 import type { Message } from "ai";
-import type { MessageAnnotation } from "~/types";
 
 export async function getUserById(userId: string) {
   const user = await db
@@ -101,7 +100,7 @@ export async function upsertChat(opts: {
           chatId,
           role: message.role,
           parts: partsData,
-          annotations: message.annotations as any || null,
+          annotations: message.annotations ?? null,
           order: index,
         };
       });
