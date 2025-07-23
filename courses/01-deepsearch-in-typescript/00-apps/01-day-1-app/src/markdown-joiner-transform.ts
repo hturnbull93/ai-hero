@@ -7,20 +7,35 @@ class MarkdownJoiner {
   processText(text: string): string {
     let output = "";
 
-    for (const char of text) {
+    for (let i = 0; i < text.length; i++) {
+      const char: string = text[i] ?? "";
+      const nextChar: string = i + 1 < text.length ? text[i + 1] ?? "" : "";
+      // Detect if this is a bullet: '*' after only whitespace since last newline (for nested lists)
       if (!this.isBuffering) {
-        // Check if we should start buffering
-        if (char === "[" || char === "*" || char === "_") {
+        if (
+          char === "*" &&
+          (() => {
+            // Scan backwards to previous newline or start
+            let j = i - 1;
+            while (j >= 0 && text[j] !== "\n") {
+              if (text[j] !== " " && text[j] !== "\t") return false;
+              j--;
+            }
+            return true;
+          })() &&
+          nextChar === " "
+        ) {
+          // Bullet detected, pass through directly
+          output += char;
+        } else if (char === "[" || char === "*" || char === "_") {
           this.buffer = char;
           this.isBuffering = true;
         } else {
-          // Pass through character directly
           output += char;
         }
       } else {
         this.buffer += char;
 
-        // Check for complete markdown elements or false positives
         if (
           this.isCompleteLink() ||
           this.isCompleteBold() ||
