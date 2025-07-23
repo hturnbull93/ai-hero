@@ -10,18 +10,20 @@ export const streamFromDeepSearch = async (opts: {
   messages: Message[];
   onFinish: Parameters<typeof streamText>[0]["onFinish"];
   langfuseTraceId: string | undefined;
-  writeMessageAnnotation?: (annotation: MessageAnnotation) => void;
+  writeMessageAnnotation: (annotation: MessageAnnotation) => void;
 }): Promise<StreamTextResult<{}, string>> => {
   // Run the agent loop and wait for the result
   return runAgentLoop(opts.messages, {
-    writeMessageAnnotation: opts.writeMessageAnnotation ?? (() => {}),
+    writeMessageAnnotation: opts.writeMessageAnnotation,
     langfuseTraceId: opts.langfuseTraceId,
+    onFinish: opts.onFinish,
   });
 };
 
 export async function askDeepSearch(messages: Message[]) {
   const result = await streamFromDeepSearch({
     messages,
+    writeMessageAnnotation: () => {}, // just a stub
     onFinish: () => {}, // just a stub
     langfuseTraceId: undefined,
   });

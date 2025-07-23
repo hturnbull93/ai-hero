@@ -10,7 +10,7 @@ interface GetNextActionOptions {
 
 export const getNextAction = async (
   context: SystemContext,
-  opts: GetNextActionOptions = {}
+  opts: GetNextActionOptions
 ): Promise<Action> => {
   const { langfuseTraceId } = opts;
   

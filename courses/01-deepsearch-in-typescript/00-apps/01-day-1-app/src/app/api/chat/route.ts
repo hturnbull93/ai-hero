@@ -111,11 +111,16 @@ export async function POST(request: Request) {
         sessionId: chatId,
       });
 
+      // Collect annotations in memory
+      const annotations: MessageAnnotation[] = [];
+
       // Wait for the result
       const result = await streamFromDeepSearch({
         messages,
         langfuseTraceId: trace.id,
         writeMessageAnnotation: (annotation: MessageAnnotation) => {
+          // Save the annotation in-memory
+          annotations.push(annotation);
           // Use Zod to ensure we have a properly serializable object
           const serializedAnnotation = messageAnnotationSchema.parse(annotation);
           dataStream.writeMessageAnnotation(serializedAnnotation);
@@ -129,6 +134,12 @@ export async function POST(request: Request) {
               messages,
               responseMessages,
             });
+
+            // Get the last message and add annotations to it
+            const lastMessage = updatedMessages[updatedMessages.length - 1];
+            if (lastMessage) {
+              lastMessage.annotations = annotations as any;
+            }
 
             // Save the complete conversation to the database
             const saveMessageSpan = trace.span({

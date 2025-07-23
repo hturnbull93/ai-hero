@@ -6,13 +6,14 @@ import { markdownJoinerTransform } from "~/markdown-joiner-transform";
 interface AnswerOptions {
   isFinal?: boolean;
   langfuseTraceId?: string;
+  onFinish: Parameters<typeof streamText>[0]["onFinish"];
 }
 
 export const answerQuestion = (
   context: SystemContext,
-  options: AnswerOptions = {}
+  options: AnswerOptions
 ): StreamTextResult<{}, string> => {
-  const { isFinal = false, langfuseTraceId } = options;
+  const { isFinal = false, langfuseTraceId, onFinish } = options;
   const latestUserMessage = context.getLatestUserMessage();
 
   const systemPrompt = `You are a helpful assistant that answers questions based on information gathered from web searches and scraped content.
@@ -115,5 +116,6 @@ Please provide a comprehensive answer to the user's question based on the availa
         },
       },
     }),
+    onFinish,
   });
 }; 

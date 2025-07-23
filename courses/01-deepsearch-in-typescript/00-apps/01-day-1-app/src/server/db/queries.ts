@@ -2,6 +2,7 @@ import { and, eq, gte, sql, asc, desc } from "drizzle-orm";
 import { db } from "./index";
 import { users, userRequests, chats, messages } from "./schema";
 import type { Message } from "ai";
+import type { MessageAnnotation } from "~/types";
 
 export async function getUserById(userId: string) {
   const user = await db
@@ -100,6 +101,7 @@ export async function upsertChat(opts: {
           chatId,
           role: message.role,
           parts: partsData,
+          annotations: message.annotations as any || null,
           order: index,
         };
       });
@@ -135,6 +137,7 @@ export async function getChat(chatId: string, userId: string) {
       id: messages.id,
       role: messages.role,
       parts: messages.parts,
+      annotations: messages.annotations,
       order: messages.order,
       createdAt: messages.createdAt,
     })
@@ -156,6 +159,9 @@ export async function getChat(chatId: string, userId: string) {
     // parts are always present, and the AI SDK
     // will use the parts to construct the content
     content: "",
+    // msg.annotations is typed as unknown, so we
+    // need to cast it to the correct type
+    annotations: msg.annotations as Message["annotations"],
   }));
 
   return {
