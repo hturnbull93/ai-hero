@@ -50,11 +50,11 @@ export function ChatList({ currentChatId, isAuthenticated }: ChatListProps) {
         }`}>
           <Link
             href={`/?id=${chat.id}`}
-            className="block p-3 pr-10 text-left text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-lg truncate"
+            className="block p-3 pr-10 text-left text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-lg break-words"
           >
             {chat.title}
           </Link>
-          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+          <div className="absolute right-2 top-2">
             <DeleteChatButton 
               chatId={chat.id} 
               onDelete={handleDeleteChat}
