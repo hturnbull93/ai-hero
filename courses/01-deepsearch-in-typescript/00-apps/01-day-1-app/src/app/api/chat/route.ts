@@ -28,16 +28,16 @@ export async function POST(request: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  // --- GEOLOCATION LOGIC ---
   // Mock headers in development for local testing
   if (process.env.NODE_ENV === "development") {
     request.headers.set("x-vercel-ip-country", "UK");
     request.headers.set("x-vercel-ip-country-region", "GB");
     request.headers.set("x-vercel-ip-city", "London");
   }
+
   // Get geolocation info
   const userLocation = geolocation(request);
-  console.log("userLocation", userLocation);
+
   // Global rate limit configuration - 1 request per 5 seconds for testing
   const config: RateLimitConfig = {
     maxRequests: 1,

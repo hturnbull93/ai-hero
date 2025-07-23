@@ -14,7 +14,6 @@ export interface ChatContextType {
   updateChat: (chatId: string, updates: Partial<Chat>) => void;
 }
 
-// Action types for the getNextAction function
 export interface SearchResult {
   date: string;
   title: string;
@@ -24,12 +23,10 @@ export interface SearchResult {
   summary: string; // LLM-generated summary
 }
 
-export interface SearchAction {
-  type: "search";
-  query: string;
+export interface ContinueAction {
+  type: "continue";
   title: string;
   reasoning: string;
-  results: SearchResult[];
 }
 
 export interface AnswerAction {
@@ -38,44 +35,42 @@ export interface AnswerAction {
   reasoning: string;
 }
 
-export type Action = SearchAction | AnswerAction;
+export type Action = ContinueAction | AnswerAction;
 
-// Zod schema for actions (used by getNextAction and message annotations)
+export interface QueryPlan {
+  plan: string;
+  queries: string[];
+}
+
+// Zod schema for actions
 export const actionSchema = z.object({
   type: z
-    .enum(["search", "answer"])
+    .enum(["continue", "answer"])
     .describe(
       `The type of action to take.
-      - 'search': Search the web for more information and scrape the results.
+      - 'continue': Continue searching for more information.
       - 'answer': Answer the user's question and complete the loop.`,
     ),
   title: z
     .string()
     .describe(
-      "The title of the action, to be displayed in the UI. Be extremely concise. 'Searching Saka's injury history', 'Checking HMRC industrial action', 'Comparing toaster ovens'",
+      "The title of the action, to be displayed in the UI. Be extremely concise. 'Continue searching for more information', 'Provide final answer'",
     ),
   reasoning: z
     .string()
     .describe("The reason you chose this step."),
-  query: z
+});
+
+// Zod schema for query plan
+export const queryPlanSchema = z.object({
+  plan: z
     .string()
-    .describe(
-      "The query to search for. Only required if type is 'search'.",
-    )
-    .optional(),
-  results: z
-    .array(
-      z.object({
-        date: z.string(),
-        title: z.string(),
-        url: z.string(),
-        snippet: z.string(),
-        scrapedContent: z.string(),
-        summary: z.string(),
-      })
-    )
-    .describe("The search results, including scraped content and summary. Only required if type is 'search'.")
-    .optional(),
+    .describe("A detailed research plan outlining the logical progression of information needed"),
+  queries: z
+    .array(z.string())
+    .min(1)
+    .max(5)
+    .describe("A numbered list of 3-5 sequential search queries that progress logically from foundational to specific information"),
 });
 
 // Message annotation type for progress indication

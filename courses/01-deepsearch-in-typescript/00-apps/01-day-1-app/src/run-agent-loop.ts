@@ -1,17 +1,18 @@
 import { getNextAction } from "./get-next-action";
+import { queryRewriter } from "./query-rewriter";
 import { SystemContext } from "./system-context";
 import { searchSerper } from "./serper";
 import { bulkCrawlWebsites } from "./scraper";
 import { answerQuestion } from "./answer-question";
 import { type streamText } from "ai";
-import type { Action, MessageAnnotation, SearchResult } from "./types";
+import type { Action, MessageAnnotation } from "./types";
 import type { StreamTextResult, Message } from "ai";
 import type { Geo } from "@vercel/functions";
 import { env } from "./env";
 import { summariseURL } from "./summarise";
 
 const searchScrapeAndSummarise = async (query: string, ctx: SystemContext, langfuseTraceId?: string) => {
-  const numResults = env.SEARCH_RESULTS_COUNT || 3;
+  const numResults = env.SEARCH_RESULTS_COUNT || 5;
   const searchResult = await searchSerper(
     {
       q: query,
@@ -89,7 +90,22 @@ export const runAgentLoop = async (
   // A loop that continues until we have an answer
   // or we've taken 10 actions
   while (!ctx.shouldStop()) {
-    // We choose the next action based on the state of our system
+    // 1. Run the query rewriter to get the plan and queries
+    const queryPlan = await queryRewriter(ctx, {
+      langfuseTraceId: opts.langfuseTraceId,
+    });
+
+    // 2. Search for all queries in parallel
+    const searchResults = await Promise.all(queryPlan.queries.map(query =>
+      searchScrapeAndSummarise(query, ctx, opts.langfuseTraceId)
+    ));
+
+    // 3. Save all search results to the context
+    for (const result of searchResults) {
+      ctx.reportSearch(result);
+    }
+
+    // 4. Decide whether to continue or answer
     const nextAction: Action = await getNextAction(ctx, {
       langfuseTraceId: opts.langfuseTraceId,
     });
@@ -100,19 +116,14 @@ export const runAgentLoop = async (
       action: nextAction,
     });
 
-    // We execute the action and update the state of our system
-    if (nextAction.type === "search") {
-      // Perform search, scrape, and summarise in one step
-      const result = await searchScrapeAndSummarise(nextAction.query, ctx, opts.langfuseTraceId);
-      ctx.reportSearch(result);
-    } else if (nextAction.type === "answer") {
+    if (nextAction.type === "answer") {
       return answerQuestion(ctx, {
         langfuseTraceId: opts.langfuseTraceId,
         onFinish: opts.onFinish,
       });
     }
 
-    // We increment the step counter
+    // If continue, increment the step and repeat
     ctx.incrementStep();
   }
 

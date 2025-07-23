@@ -84,7 +84,7 @@ export class SystemContext {
    * Check if we should stop the loop
    */
   shouldStop(): boolean {
-    return this.step >= 10;
+    return this.step >= 5;
   }
 
   reportSearch(search: SearchHistoryEntry) {

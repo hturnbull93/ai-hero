@@ -1,11 +1,11 @@
 import { streamText, smoothStream, type StreamTextResult } from "ai";
-import { model } from "~/models";
+import { answerQuestionModel } from "~/models";
 import type { SystemContext } from "~/system-context";
 import { markdownJoinerTransform } from "~/markdown-joiner-transform";
 
 interface AnswerOptions {
   isFinal?: boolean;
-  langfuseTraceId?: string;
+  langfuseTraceId: string | undefined;
   onFinish: Parameters<typeof streamText>[0]["onFinish"];
 }
 
@@ -17,7 +17,7 @@ export const answerQuestion = (
   const latestUserMessage = context.getLatestUserMessage();
   const userLocation = context.getUserLocation();
 
-  const systemPrompt = `You are a helpful assistant that answers questions based on information gathered from web searches and their scraped content.
+  const systemPrompt = `You are a research assistant that answers questions based on information gathered from web searches and their scraped content.
 
 Your task is to provide a comprehensive and accurate answer to the user's question using the information available.
 
@@ -104,7 +104,7 @@ ${context.getSearchHistory()}
 Please provide a comprehensive answer to the user's question based on the available information.`;
 
   return streamText({
-    model,
+    model: answerQuestionModel,
     system: systemPrompt,
     prompt,
     experimental_transform: [

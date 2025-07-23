@@ -60,12 +60,11 @@ export const ReasoningSteps = ({
                         {annotation.action.reasoning}
                       </ReactMarkdown>
                     </div>
-                    {annotation.action.type ===
-                      "search" && (
+                    {annotation.action.type === "continue" && (
                       <div className="mt-2 flex items-center gap-2 text-sm text-gray-400">
                         <SearchIcon className="size-4" />
                         <span>
-                          {annotation.action.query}
+                          Planning and executing search queries...
                         </span>
                       </div>
                     )}
