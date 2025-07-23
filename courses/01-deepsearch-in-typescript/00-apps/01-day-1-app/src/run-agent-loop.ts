@@ -47,7 +47,7 @@ export const runAgentLoop = async (
     writeMessageAnnotation: (annotation: MessageAnnotation) => void;
     langfuseTraceId?: string;
     onFinish: Parameters<typeof streamText>[0]["onFinish"];
-    userLocation?: Geo;
+    userLocation: Geo;
   },
 ): Promise<StreamTextResult<{}, string>> => {
   // A persistent container for the state of our system
@@ -85,7 +85,7 @@ export const runAgentLoop = async (
     ctx.incrementStep();
   }
 
-  // If we've taken 10 actions and still don't have an answer,
+  // If we've taken all actions and still don't have an answer,
   // we ask the LLM to give its best attempt at an answer
   return answerQuestion(ctx, {
     isFinal: true,

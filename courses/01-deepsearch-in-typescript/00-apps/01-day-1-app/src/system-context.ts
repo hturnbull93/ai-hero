@@ -50,7 +50,7 @@ export class SystemContext {
 
   private userLocation?: Geo;
 
-  constructor(messages: Message[], userLocation?: Geo) {
+  constructor(messages: Message[], userLocation: Geo) {
     this.messageHistory = messages;
     this.userLocation = userLocation;
   }

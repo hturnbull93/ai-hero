@@ -12,7 +12,7 @@ export const streamFromDeepSearch = async (opts: {
   onFinish: Parameters<typeof streamText>[0]["onFinish"];
   langfuseTraceId: string | undefined;
   writeMessageAnnotation: (annotation: MessageAnnotation) => void;
-  userLocation?: Geo;
+  userLocation: Geo;
 }): Promise<StreamTextResult<{}, string>> => {
   // Run the agent loop and wait for the result
   return runAgentLoop(opts.messages, {
@@ -29,6 +29,13 @@ export async function askDeepSearch(messages: Message[]) {
     writeMessageAnnotation: () => {}, // just a stub
     onFinish: () => {}, // just a stub
     langfuseTraceId: undefined,
+    userLocation: {
+      // London, UK
+      latitude: "51.518678",
+      longitude: "-0.128831",
+      city: "London",
+      country: "United Kingdom",
+    },
   });
 
   // Consume the stream - without this,
