@@ -1,22 +1,36 @@
+import { geolocation } from "@vercel/functions";
 import type { Message } from "ai";
-import { createDataStreamResponse, appendResponseMessages } from "ai";
+import { appendResponseMessages, createDataStream } from "ai";
+import Redis from "ioredis";
 import { Langfuse } from "langfuse";
+import { after } from "next/server";
+import { createResumableStreamContext } from "resumable-stream/ioredis";
+import { streamFromDeepSearch } from "~/deep-search";
 import { env } from "~/env";
 import { auth } from "~/server/auth";
+import {
+  appendStreamId,
+  getChat,
+  getStreamIds,
+  upsertChat,
+} from "~/server/db/queries";
 import {
   checkRateLimit,
   recordRateLimit,
   type RateLimitConfig,
 } from "~/server/rate-limiting";
-import { upsertChat } from "~/server/db/queries";
-import { streamFromDeepSearch } from "~/deep-search";
-import { isError, generateChatTitle } from "~/utils";
 import type { MessageAnnotation } from "~/types";
 import { messageAnnotationSchema } from "~/types";
-import { geolocation } from "@vercel/functions";
+import { generateChatTitle, isError } from "~/utils";
 
 const langfuse = new Langfuse({
   environment: env.NODE_ENV,
+});
+
+const streamContext = createResumableStreamContext({
+  waitUntil: after,
+  publisher: new Redis(env.REDIS_URL),
+  subscriber: new Redis(env.REDIS_URL),
 });
 
 export const maxDuration = 60;
@@ -68,11 +82,12 @@ export async function POST(request: Request) {
     chatId: string;
     isNewChat: boolean;
   };
+  const { messages, chatId, isNewChat } = body;
 
-  return createDataStreamResponse({
+  const streamId = crypto.randomUUID();
+
+  const stream = createDataStream({
     execute: async (dataStream) => {
-      const { messages, chatId, isNewChat } = body;
-
       // Create Langfuse trace with user data
       const trace = langfuse.trace({
         name: "chat",
@@ -99,7 +114,7 @@ export async function POST(request: Request) {
       // Save the current messages to the database before starting the stream
       // Use "Generating..." as temporary title for new chats
       const tempTitle = "Generating...";
-      
+
       const upsertChatSpan = trace.span({
         name: "upsert-chat-before-stream",
         input: {
@@ -121,6 +136,9 @@ export async function POST(request: Request) {
         output: upsertResult,
       });
 
+      // Now that the chat is created, we can safely create the stream
+      await appendStreamId(chatId, streamId);
+
       // Update trace with sessionId now that we have the chatId
       trace.update({
         sessionId: chatId,
@@ -138,7 +156,8 @@ export async function POST(request: Request) {
           // Save the annotation in-memory
           annotations.push(annotation);
           // Use Zod to ensure we have a properly serializable object
-          const serializedAnnotation = messageAnnotationSchema.parse(annotation);
+          const serializedAnnotation =
+            messageAnnotationSchema.parse(annotation);
           dataStream.writeMessageAnnotation(serializedAnnotation);
         },
         onFinish: async ({ response }) => {
@@ -156,7 +175,7 @@ export async function POST(request: Request) {
             if (lastMessage) {
               // Ensure annotations are serializable as JSONValue[]
               lastMessage.annotations = annotations.map((annotation) =>
-                messageAnnotationSchema.parse(annotation)
+                messageAnnotationSchema.parse(annotation),
               );
             }
 
@@ -204,6 +223,9 @@ export async function POST(request: Request) {
 
       // Once the result is ready, merge it into the data stream
       result.mergeIntoDataStream(dataStream);
+
+      // Consume the stream to ensure it can be resumed if needed
+      await result.consumeStream();
     },
     onError: (e) => {
       console.error("Stream error:", e);
@@ -221,4 +243,64 @@ export async function POST(request: Request) {
       return "An error occurred while processing your request. Please try again.";
     },
   });
+
+  return new Response(
+    await streamContext.resumableStream(streamId, () => stream),
+  );
+}
+
+export async function GET(request: Request) {
+  const session = await auth();
+  if (!session?.user) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const chatId = searchParams.get("chatId");
+  if (!chatId) {
+    return new Response("No chatId provided", { status: 400 });
+  }
+
+  const chat = await getChat(chatId, session.user.id);
+  if (!chat) {
+    return new Response("Chat not found", { status: 404 });
+  }
+
+  const { mostRecentStreamId, streamIds } = await getStreamIds(chatId);
+  if (!streamIds.length) {
+    return new Response("No streamIds found", { status: 404 });
+  }
+  if (!mostRecentStreamId) {
+    return new Response("No mostRecentStreamId found", { status: 404 });
+  }
+
+  const emptyDataStream = createDataStream({
+    execute: () => {},
+  });
+
+  const stream = await streamContext.resumableStream(
+    mostRecentStreamId,
+    () => emptyDataStream,
+  );
+
+  if (stream) {
+    return new Response(stream, { status: 200 });
+  }
+
+  const mostRecentMessage = chat.messages[chat.messages.length - 1];
+
+  if (!mostRecentMessage || mostRecentMessage.role !== "assistant") {
+    return new Response(emptyDataStream, { status: 200 });
+  }
+
+  const streamWithMessage = createDataStream({
+    execute: (dataStream) => {
+      dataStream.writeData({
+        type: "append-message",
+        message: JSON.stringify(mostRecentMessage),
+      });
+    },
+  });
+
+  return new Response(streamWithMessage, { status: 200 });
 }

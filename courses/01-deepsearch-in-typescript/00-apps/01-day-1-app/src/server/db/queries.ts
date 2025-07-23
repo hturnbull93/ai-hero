@@ -1,7 +1,7 @@
-import { and, eq, gte, sql, asc, desc } from "drizzle-orm";
-import { db } from "./index";
-import { users, userRequests, chats, messages } from "./schema";
 import type { Message } from "ai";
+import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
+import { db } from "./index";
+import { chats, messages, streams, userRequests, users } from "./schema";
 
 export async function getUserById(userId: string) {
   const user = await db
@@ -22,10 +22,7 @@ export async function getTodayRequestCount(userId: string) {
     .select({ count: sql<number>`count(*)` })
     .from(userRequests)
     .where(
-      and(
-        eq(userRequests.userId, userId),
-        gte(userRequests.createdAt, today)
-      )
+      and(eq(userRequests.userId, userId), gte(userRequests.createdAt, today)),
     );
 
   return result[0]?.count ?? 0;
@@ -63,9 +60,9 @@ export async function upsertChat(opts: {
       // Update existing chat - only update title if provided
       await tx
         .update(chats)
-        .set({ 
+        .set({
           updatedAt: sql`CURRENT_TIMESTAMP`,
-          ...(title ? { title } : {})
+          ...(title ? { title } : {}),
         })
         .where(eq(chats.id, chatId));
 
@@ -203,4 +200,27 @@ export async function deleteChat(chatId: string, userId: string) {
   await db.delete(chats).where(eq(chats.id, chatId));
 
   return { success: true };
-} 
+}
+
+export const appendStreamId = async (chatId: string, streamId: string) => {
+  await db.insert(streams).values({
+    id: streamId,
+    chatId,
+  });
+};
+
+export const getStreamIds = async (chatId: string) => {
+  const streamResult = await db
+    .select({
+      id: streams.id,
+      createdAt: streams.createdAt,
+    })
+    .from(streams)
+    .where(eq(streams.chatId, chatId))
+    .orderBy(desc(streams.createdAt));
+
+  const mostRecentStreamId = streamResult[0]?.id;
+  const streamIds = streamResult.map((stream) => stream.id);
+
+  return { mostRecentStreamId, streamIds };
+};

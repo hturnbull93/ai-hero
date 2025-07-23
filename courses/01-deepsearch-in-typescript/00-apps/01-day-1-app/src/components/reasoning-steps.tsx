@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { SearchIcon, LinkIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { MessageAnnotation } from "~/types";
 import { QueryPlan } from "./query-plan";

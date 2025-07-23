@@ -1,18 +1,18 @@
+import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { relations, sql } from "drizzle-orm";
 import {
+  boolean,
   index,
   integer,
+  json,
   pgTableCreator,
   primaryKey,
+  serial,
   text,
   timestamp,
   varchar,
-  json,
-  boolean,
-  serial,
 } from "drizzle-orm/pg-core";
 import { type AdapterAccount } from "next-auth/adapters";
-import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -124,11 +124,15 @@ export const userRequests = createTable(
     createdAt: timestamp("created_at", {
       mode: "date",
       withTimezone: true,
-    }).notNull().default(sql`CURRENT_TIMESTAMP`),
+    })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (userRequest) => ({
     userIdIdx: index("user_requests_user_id_idx").on(userRequest.userId),
-    createdAtIdx: index("user_requests_created_at_idx").on(userRequest.createdAt),
+    createdAtIdx: index("user_requests_created_at_idx").on(
+      userRequest.createdAt,
+    ),
   }),
 );
 
@@ -150,11 +154,15 @@ export const chats = createTable(
     createdAt: timestamp("created_at", {
       mode: "date",
       withTimezone: true,
-    }).notNull().default(sql`CURRENT_TIMESTAMP`),
+    })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
     updatedAt: timestamp("updated_at", {
       mode: "date",
       withTimezone: true,
-    }).notNull().default(sql`CURRENT_TIMESTAMP`),
+    })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (chat) => ({
     userIdIdx: index("chats_user_id_idx").on(chat.userId),
@@ -184,7 +192,9 @@ export const messages = createTable(
     createdAt: timestamp("created_at", {
       mode: "date",
       withTimezone: true,
-    }).notNull().default(sql`CURRENT_TIMESTAMP`),
+    })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
   },
   (message) => ({
     chatIdIdx: index("messages_chat_id_idx").on(message.chatId),
@@ -194,6 +204,26 @@ export const messages = createTable(
 
 export const messagesRelations = relations(messages, ({ one }) => ({
   chat: one(chats, { fields: [messages.chatId], references: [chats.id] }),
+}));
+
+export const streams = createTable("streams", {
+  id: varchar("id", { length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  chatId: varchar("chat_id", { length: 255 })
+    .notNull()
+    .references(() => chats.id),
+  createdAt: timestamp("created_at", {
+    mode: "date",
+    withTimezone: true,
+  })
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const streamsRelations = relations(streams, ({ one }) => ({
+  chat: one(chats, { fields: [streams.chatId], references: [chats.id] }),
 }));
 
 export declare namespace DB {
