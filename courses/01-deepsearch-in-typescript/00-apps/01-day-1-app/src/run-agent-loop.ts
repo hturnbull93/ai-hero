@@ -6,6 +6,7 @@ import { answerQuestion } from "./answer-question";
 import { streamText } from "ai";
 import type { Action, MessageAnnotation } from "./types";
 import type { StreamTextResult, Message } from "ai";
+import type { Geo } from "@vercel/functions";
 
 const searchWeb = async (query: string) => {
   const results = await searchSerper(
@@ -46,10 +47,11 @@ export const runAgentLoop = async (
     writeMessageAnnotation: (annotation: MessageAnnotation) => void;
     langfuseTraceId?: string;
     onFinish: Parameters<typeof streamText>[0]["onFinish"];
+    userLocation?: Geo;
   },
 ): Promise<StreamTextResult<{}, string>> => {
   // A persistent container for the state of our system
-  const ctx = new SystemContext(messages);
+  const ctx = new SystemContext(messages, opts.userLocation);
 
   // A loop that continues until we have an answer
   // or we've taken 10 actions

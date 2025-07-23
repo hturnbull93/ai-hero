@@ -1,3 +1,4 @@
+import type { Geo } from "@vercel/functions";
 import type { Message } from "ai";
 
 type QueryResultSearchResult = {
@@ -47,8 +48,11 @@ export class SystemContext {
    */
   private scrapeHistory: ScrapeResult[] = [];
 
-  constructor(messages: Message[]) {
+  private userLocation?: Geo;
+
+  constructor(messages: Message[], userLocation?: Geo) {
     this.messageHistory = messages;
+    this.userLocation = userLocation;
   }
 
   /**
@@ -140,5 +144,17 @@ export class SystemContext {
       .join("\n\n");
 
     return [queryInfo, scrapeInfo].filter(Boolean).join("\n\n");
+  }
+
+  /**
+   * Get the user location as a formatted string
+   */
+  getUserLocation() {
+    return this.userLocation ? `
+    - lat: ${this.userLocation?.latitude ?? "unknown"}
+    - lon: ${this.userLocation?.longitude ?? "unknown"}
+    - city: ${this.userLocation?.city ?? "unknown"}
+    - country: ${this.userLocation?.country ?? "unknown"}
+    ` : "";
   }
 } 

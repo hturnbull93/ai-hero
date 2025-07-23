@@ -79,4 +79,11 @@ export type MessageAnnotation = {
 export const messageAnnotationSchema = z.object({
   type: z.literal("NEW_ACTION"),
   action: actionSchema,
-}); 
+});
+
+export type UserLocation = {
+  longitude?: string;
+  latitude?: string;
+  city?: string;
+  country?: string;
+};

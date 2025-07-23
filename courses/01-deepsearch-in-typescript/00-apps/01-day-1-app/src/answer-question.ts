@@ -15,6 +15,7 @@ export const answerQuestion = (
 ): StreamTextResult<{}, string> => {
   const { isFinal = false, langfuseTraceId, onFinish } = options;
   const latestUserMessage = context.getLatestUserMessage();
+  const userLocation = context.getUserLocation();
 
   const systemPrompt = `You are a helpful assistant that answers questions based on information gathered from web searches and scraped content.
 
@@ -87,6 +88,12 @@ Sven-Göran Eriksson (born February 5, 1948, in Sunne, Sweden) was a Swedish foo
   const prompt = `
 ## User's Question
 ${latestUserMessage}
+
+## User Location
+${userLocation}
+
+## Current Date
+${new Date().toISOString().split('T')[0]} (${new Date().toLocaleString('en-US', { timeZone: 'UTC', timeZoneName: 'short' })})
 
 ## Message History
 ${context.getMessageHistory()}

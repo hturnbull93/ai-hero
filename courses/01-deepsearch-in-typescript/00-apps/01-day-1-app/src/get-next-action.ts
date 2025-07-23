@@ -33,6 +33,9 @@ You must decide the next action to take, based on the information available so f
 ## Current Information Available:
 ${context.getInformation()}
 
+## User Location:
+${context.getUserLocation()}
+
 ## Message History:
 ${context.getMessageHistory()}
 

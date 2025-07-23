@@ -5,18 +5,21 @@ import {
 } from "ai";
 import { runAgentLoop } from "./run-agent-loop";
 import type { MessageAnnotation } from "./types";
+import type { Geo } from "@vercel/functions";
 
 export const streamFromDeepSearch = async (opts: {
   messages: Message[];
   onFinish: Parameters<typeof streamText>[0]["onFinish"];
   langfuseTraceId: string | undefined;
   writeMessageAnnotation: (annotation: MessageAnnotation) => void;
+  userLocation?: Geo;
 }): Promise<StreamTextResult<{}, string>> => {
   // Run the agent loop and wait for the result
   return runAgentLoop(opts.messages, {
     writeMessageAnnotation: opts.writeMessageAnnotation,
     langfuseTraceId: opts.langfuseTraceId,
     onFinish: opts.onFinish,
+    userLocation: opts.userLocation,
   });
 };
 
