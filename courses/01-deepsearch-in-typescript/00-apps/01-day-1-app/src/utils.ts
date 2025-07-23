@@ -1,6 +1,6 @@
 import { generateText } from "ai";
 import type { Message } from "ai";
-import { model } from "~/models";
+import { generateChatTitleModel } from "~/models";
 
 export function isNewChatCreated(
   data: unknown,
@@ -48,7 +48,7 @@ export const generateChatTitle = async (
   messages: Message[],
 ) => {
   const { text } = await generateText({
-    model,
+    model: generateChatTitleModel,
     system: `You are a chat title generator.
       You will be given a chat history, and you will need to generate a title for the chat.
       The title should be a single sentence that captures the essence of the chat.
