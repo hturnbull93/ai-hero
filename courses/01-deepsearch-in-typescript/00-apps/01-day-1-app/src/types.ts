@@ -77,13 +77,24 @@ export const queryPlanSchema = z.object({
 export type MessageAnnotation = {
   type: "NEW_ACTION";
   action: Action;
+} | {
+  type: "QUERY_PLAN";
+  plan: string;
+  queries: string[];
 };
 
 // Zod schema for message annotations (shared between parsing and serializing)
-export const messageAnnotationSchema = z.object({
-  type: z.literal("NEW_ACTION"),
-  action: actionSchema,
-});
+export const messageAnnotationSchema = z.union([
+  z.object({
+    type: z.literal("NEW_ACTION"),
+    action: actionSchema,
+  }),
+  z.object({
+    type: z.literal("QUERY_PLAN"),
+    plan: z.string(),
+    queries: z.array(z.string()),
+  }),
+]);
 
 export type UserLocation = {
   longitude?: string;

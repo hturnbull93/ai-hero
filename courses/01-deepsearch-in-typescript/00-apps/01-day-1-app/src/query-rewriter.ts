@@ -36,6 +36,7 @@ Finally, translate this plan into a numbered list of 3-5 sequential search queri
 
 - Are specific and focused (avoid broad queries that return general information)
 - Are written in natural language without Boolean operators (no AND/OR)
+- Are appropriate for google search
 - Progress logically from foundational to specific information
 - Build upon each other in a meaningful way
 

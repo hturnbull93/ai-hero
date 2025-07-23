@@ -95,6 +95,13 @@ export const runAgentLoop = async (
       langfuseTraceId: opts.langfuseTraceId,
     });
 
+    // Send annotation about the query plan
+    opts.writeMessageAnnotation({
+      type: "QUERY_PLAN",
+      plan: queryPlan.plan,
+      queries: queryPlan.queries,
+    });
+
     // 2. Search for all queries in parallel
     const searchResults = await Promise.all(queryPlan.queries.map(query =>
       searchScrapeAndSummarise(query, ctx, opts.langfuseTraceId)

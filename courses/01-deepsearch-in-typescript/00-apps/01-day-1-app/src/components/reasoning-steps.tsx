@@ -2,6 +2,7 @@ import { useState } from "react";
 import { SearchIcon, LinkIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { MessageAnnotation } from "~/types";
+import { QueryPlan } from "./query-plan";
 
 export const ReasoningSteps = ({
   annotations,
@@ -29,6 +30,38 @@ export const ReasoningSteps = ({
       <ul className="space-y-1">
         {annotations.map((annotation, index) => {
           const isOpen = openSteps.has(index);
+          
+          if (annotation.type === "QUERY_PLAN") {
+            return (
+              <li key={index} className="relative">
+                <button
+                  onClick={() => toggleStep(index)}
+                  className={`min-w-34 flex w-full flex-shrink-0 items-center rounded px-2 py-1 text-left text-sm transition-colors ${
+                    isOpen
+                      ? "bg-gray-700 text-gray-200"
+                      : "text-gray-400 hover:bg-gray-800 hover:text-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`z-10 mr-3 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 border-gray-500 text-xs font-bold ${
+                      isOpen
+                        ? "border-green-400 text-white"
+                        : "bg-gray-800 text-gray-300"
+                    }`}
+                  >
+                    {index + 1}
+                  </span>
+                  Planning search queries ({annotation.queries.length} queries)
+                </button>
+                <div className={`${isOpen ? "mt-1" : "hidden"}`}>
+                  {isOpen && (
+                    <QueryPlan plan={annotation.plan} queries={annotation.queries} />
+                  )}
+                </div>
+              </li>
+            );
+          }
+
           return (
             <li key={index} className="relative">
               <button
@@ -60,14 +93,6 @@ export const ReasoningSteps = ({
                         {annotation.action.reasoning}
                       </ReactMarkdown>
                     </div>
-                    {annotation.action.type === "continue" && (
-                      <div className="mt-2 flex items-center gap-2 text-sm text-gray-400">
-                        <SearchIcon className="size-4" />
-                        <span>
-                          Planning and executing search queries...
-                        </span>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
