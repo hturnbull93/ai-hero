@@ -7,38 +7,43 @@ import { type streamText } from "ai";
 import type { Action, MessageAnnotation } from "./types";
 import type { StreamTextResult, Message } from "ai";
 import type { Geo } from "@vercel/functions";
+import { env } from "./env";
 
-const searchWeb = async (query: string) => {
-  const results = await searchSerper(
+const searchAndScrape = async (query: string) => {
+  const numResults = env.SEARCH_RESULTS_COUNT || 3;
+  const searchResult = await searchSerper(
     {
       q: query,
-      num: 10,
+      num: numResults,
     },
     undefined,
   );
 
+  // Only take the top N organic results
+  const results = searchResult.organic.slice(0, numResults);
+  const urls = results.map((result) => result.link);
+
+  // Scrape all URLs in parallel
+  const scrapeResults = await bulkCrawlWebsites({ urls });
+  const scrapedContentMap = new Map<string, string>();
+  for (const r of scrapeResults.results) {
+    if (r.result.success === true) {
+      scrapedContentMap.set(r.url, r.result.data);
+    } else {
+      scrapedContentMap.set(r.url, "");
+    }
+  }
+
   return {
     query,
-    results: results.organic.map((result) => ({
+    results: results.map((result) => ({
       date: result.date ?? "",
       title: result.title,
       url: result.link,
       snippet: result.snippet,
+      scrapedContent: scrapedContentMap.get(result.link) ?? "",
     })),
   };
-};
-
-const scrapeUrl = async (urls: string[]) => {
-  const result = await bulkCrawlWebsites({ urls });
-
-  if (!result.success) {
-    throw new Error(result.error);
-  }
-
-  return result.results.map((r) => ({
-    url: r.url,
-    result: r.result.data,
-  }));
 };
 
 export const runAgentLoop = async (
@@ -69,11 +74,9 @@ export const runAgentLoop = async (
 
     // We execute the action and update the state of our system
     if (nextAction.type === "search") {
-      const result = await searchWeb(nextAction.query);
-      ctx.reportQueries([result]);
-    } else if (nextAction.type === "scrape") {
-      const result = await scrapeUrl(nextAction.urls);
-      ctx.reportScrapes(result);
+      // Perform search and scrape in one step
+      const result = await searchAndScrape(nextAction.query);
+      ctx.reportSearch(result);
     } else if (nextAction.type === "answer") {
       return answerQuestion(ctx, {
         langfuseTraceId: opts.langfuseTraceId,

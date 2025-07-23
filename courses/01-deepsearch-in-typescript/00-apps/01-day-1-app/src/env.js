@@ -26,7 +26,7 @@ export const env = createEnv({
     EVAL_MODE: z.boolean().default(false),
     SKIP_CACHE_IN_EVAL: z.boolean().default(false),
     EVAL_DATASET: z.enum(["dev", "ci", "regression"]).default("dev"),
-    SEARCH_RESULTS_COUNT: z.coerce.number().default(10),
+    SEARCH_RESULTS_COUNT: z.coerce.number().default(3),
   },
 
   /**

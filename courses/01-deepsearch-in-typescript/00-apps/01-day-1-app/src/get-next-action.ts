@@ -18,20 +18,18 @@ export const getNextAction = async (
     model,
     schema: actionSchema,
     system: `
-You are a helpful assistant that can search the web, scrape a URL, or answer the user's question.
+You are a helpful assistant that can search the web (and automatically scrape the results), or answer the user's question.
 
 **Current Date:** ${new Date().toISOString().split('T')[0]} (${new Date().toLocaleString('en-US', { timeZone: 'UTC', timeZoneName: 'short' })})
-
 `,
     prompt: `
 You must decide the next action to take, based on the information available so far. Choose only one of the following actions:
 
-1. **search** - Search the web for more information about the user's question
-2. **scrape** - Scrape content from specific URLs that have been found
-3. **answer** - Provide a final answer to the user's question
+1. **search** - Search the web for more information about the user's question (you will automatically scrape the results)
+2. **answer** - Provide a final answer to the user's question
 
 ## Current Information Available:
-${context.getInformation()}
+${context.getSearchHistory()}
 
 ## User Location:
 ${context.getUserLocation()}
@@ -61,31 +59,21 @@ Based on the available information and conversation context, what should be the 
     if (!action.query) {
       throw new Error("Search action requires a query");
     }
-    return { 
-      type: "search", 
+    // The results field will be filled in after the search+scrape step in the agent loop
+    return {
+      type: "search",
       query: action.query,
       title: action.title,
-      reasoning: action.reasoning
-    };
-  }
-
-  if (action.type === "scrape") {
-    if (!action.urls || action.urls.length === 0) {
-      throw new Error("Scrape action requires URLs");
-    }
-    return { 
-      type: "scrape", 
-      urls: action.urls,
-      title: action.title,
-      reasoning: action.reasoning
+      reasoning: action.reasoning,
+      results: [],
     };
   }
 
   if (action.type === "answer") {
-    return { 
+    return {
       type: "answer",
       title: action.title,
-      reasoning: action.reasoning
+      reasoning: action.reasoning,
     };
   }
 

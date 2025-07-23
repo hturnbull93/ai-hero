@@ -1,31 +1,11 @@
 import type { Geo } from "@vercel/functions";
 import type { Message } from "ai";
+import type { SearchResult } from "./types";
 
-type QueryResultSearchResult = {
-  date: string;
-  title: string;
-  url: string;
-  snippet: string;
-};
-
-type QueryResult = {
+type SearchHistoryEntry = {
   query: string;
-  results: QueryResultSearchResult[];
+  results: SearchResult[];
 };
-
-type ScrapeResult = {
-  url: string;
-  result: string;
-};
-
-const toQueryResult = (
-  query: QueryResultSearchResult,
-) =>
-  [
-    `### ${query.date} - ${query.title}`,
-    query.url,
-    query.snippet,
-  ].join("\n\n");
 
 export class SystemContext {
   /**
@@ -39,14 +19,9 @@ export class SystemContext {
   private messageHistory: Message[];
 
   /**
-   * The history of all queries searched
+   * The history of all searches (search + scrape)
    */
-  private queryHistory: QueryResult[] = [];
-
-  /**
-   * The history of all URLs scraped
-   */
-  private scrapeHistory: ScrapeResult[] = [];
+  private searchHistory: SearchHistoryEntry[] = [];
 
   private userLocation?: Geo;
 
@@ -112,38 +87,28 @@ export class SystemContext {
     return this.step >= 10;
   }
 
-  /**
-   * Report queries that have been searched
-   */
-  reportQueries(queries: QueryResult[]): void {
-    this.queryHistory.push(...queries);
+  reportSearch(search: SearchHistoryEntry) {
+    this.searchHistory.push(search);
   }
 
-  /**
-   * Report scrapes that have been performed
-   */
-  reportScrapes(scrapes: ScrapeResult[]): void {
-    this.scrapeHistory.push(...scrapes);
-  }
-
-  /**
-   * Get all the information we have gathered so far
-   */
-  getInformation(): string {
-    const queryInfo = this.queryHistory
-      .map((query) => {
-        const results = query.results.map(toQueryResult).join("\n\n");
-        return `## Search Results for "${query.query}"\n\n${results}`;
-      })
+  getSearchHistory(): string {
+    return this.searchHistory
+      .map((search) =>
+        [
+          `## Query: \"${search.query}\"`,
+          ...search.results.map((result) =>
+            [
+              `### ${result.date} - ${result.title}`,
+              result.url,
+              result.snippet,
+              `<scrape_result>`,
+              result.scrapedContent,
+              `</scrape_result>`,
+            ].join("\n\n"),
+          ),
+        ].join("\n\n"),
+      )
       .join("\n\n");
-
-    const scrapeInfo = this.scrapeHistory
-      .map((scrape) => {
-        return `## Scraped Content from ${scrape.url}\n\n${scrape.result}`;
-      })
-      .join("\n\n");
-
-    return [queryInfo, scrapeInfo].filter(Boolean).join("\n\n");
   }
 
   /**

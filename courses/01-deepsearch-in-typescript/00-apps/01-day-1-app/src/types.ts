@@ -15,18 +15,20 @@ export interface ChatContextType {
 }
 
 // Action types for the getNextAction function
+export interface SearchResult {
+  date: string;
+  title: string;
+  url: string;
+  snippet: string;
+  scrapedContent: string;
+}
+
 export interface SearchAction {
   type: "search";
   query: string;
   title: string;
   reasoning: string;
-}
-
-export interface ScrapeAction {
-  type: "scrape";
-  urls: string[];
-  title: string;
-  reasoning: string;
+  results: SearchResult[];
 }
 
 export interface AnswerAction {
@@ -35,16 +37,15 @@ export interface AnswerAction {
   reasoning: string;
 }
 
-export type Action = SearchAction | ScrapeAction | AnswerAction;
+export type Action = SearchAction | AnswerAction;
 
 // Zod schema for actions (used by getNextAction and message annotations)
 export const actionSchema = z.object({
   type: z
-    .enum(["search", "scrape", "answer"])
+    .enum(["search", "answer"])
     .describe(
       `The type of action to take.
-      - 'search': Search the web for more information.
-      - 'scrape': Scrape a URL.
+      - 'search': Search the web for more information and scrape the results.
       - 'answer': Answer the user's question and complete the loop.`,
     ),
   title: z
@@ -61,11 +62,17 @@ export const actionSchema = z.object({
       "The query to search for. Only required if type is 'search'.",
     )
     .optional(),
-  urls: z
-    .array(z.string())
-    .describe(
-      "The URLs to scrape. Only required if type is 'scrape'.",
+  results: z
+    .array(
+      z.object({
+        date: z.string(),
+        title: z.string(),
+        url: z.string(),
+        snippet: z.string(),
+        scrapedContent: z.string(),
+      })
     )
+    .describe("The search results, including scraped content. Only required if type is 'search'.")
     .optional(),
 });
 

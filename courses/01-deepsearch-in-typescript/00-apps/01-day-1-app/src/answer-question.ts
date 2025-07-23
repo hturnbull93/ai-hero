@@ -17,14 +17,14 @@ export const answerQuestion = (
   const latestUserMessage = context.getLatestUserMessage();
   const userLocation = context.getUserLocation();
 
-  const systemPrompt = `You are a helpful assistant that answers questions based on information gathered from web searches and scraped content.
+  const systemPrompt = `You are a helpful assistant that answers questions based on information gathered from web searches and their scraped content.
 
 Your task is to provide a comprehensive and accurate answer to the user's question using the information available.
 
 ${isFinal ? "IMPORTANT: You may not have all the information needed to answer the question completely. Make your best effort to provide a helpful answer based on the available information, and clearly indicate any limitations or uncertainties." : ""}
 
 Guidelines:
-- Use the query results and scrape results to provide accurate information
+- Use the search results and their scraped content to provide accurate information
 - Cite sources when possible. Always include at least one source in your answer.
 - Be comprehensive but concise
 - If information is conflicting, acknowledge the conflicts
@@ -99,7 +99,7 @@ ${new Date().toISOString().split('T')[0]} (${new Date().toLocaleString('en-US', 
 ${context.getMessageHistory()}
 
 ## Information Gathered
-${context.getInformation()}
+${context.getSearchHistory()}
 
 Please provide a comprehensive answer to the user's question based on the available information.`;
 
