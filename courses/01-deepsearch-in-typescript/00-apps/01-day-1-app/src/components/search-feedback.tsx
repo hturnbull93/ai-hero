@@ -7,10 +7,12 @@ interface SearchFeedbackProps {
 
 export function SearchFeedback({ feedback, reasoning }: SearchFeedbackProps) {
   return (
-    <div className="px-2 py-1">
+    <>
       {feedback && (
         <>
-          <div className="mb-1 font-medium">Feedback</div>
+          <h4 className="mb-2 text-sm font-semibold text-gray-300">
+            Feedback
+          </h4>
           <div className="mb-2 text-sm text-gray-400">
             <ReactMarkdown>{feedback}</ReactMarkdown>
           </div>
@@ -18,12 +20,14 @@ export function SearchFeedback({ feedback, reasoning }: SearchFeedbackProps) {
       )}
       {reasoning && (
         <>
-          <div className="mb-1 font-medium">Reasoning</div>
-          <div className="mb-2 text-sm text-gray-400">
+          <h4 className="mb-2 text-sm font-semibold text-gray-300">
+            Reasoning
+          </h4>
+          <div className="text-sm text-gray-400">
             <ReactMarkdown>{reasoning}</ReactMarkdown>
           </div>
         </>
       )}
-    </div>
+    </>
   );
 }

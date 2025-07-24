@@ -36,7 +36,7 @@ export function AnnotationWrapper({
         </span>
         {title}
       </button>
-      {isOpen && <div className="mt-1">{children}</div>}
+      {isOpen && <div className="rounded-lg border border-gray-700 bg-gray-800 p-4 mt-1">{children}</div>}
     </li>
   );
 };
