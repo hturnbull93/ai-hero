@@ -38,7 +38,9 @@ ${output}
 
 JSON:`,
     schema: z.object({
-      statements: z.array(z.string()).describe("Array of statements extracted from the text"),
+      statements: z
+        .array(z.string())
+        .describe("Array of statements extracted from the text"),
     }),
   });
 
@@ -57,8 +59,9 @@ Key Principles:
 3. Prioritize relevance to the input over correctness
 4. Recognize that responses can be partially relevant
 5. Empty inputs or error messages should always be marked as "no"
-6. Responses that discuss the type of information being asked show partial relevance`,
-    prompt: `Evaluate each statement's relevance to the input question, considering direct answers, related context, and uncertain cases.
+6. Responses that discuss the type of information being asked show partial relevance
+
+Evaluate each statement's relevance to the input question, considering direct answers, related context, and uncertain cases.
 
     Return JSON with array of verdict objects. Each verdict must include:
     - "verdict": "yes", "no", or "unsure"
@@ -173,8 +176,8 @@ Key Principles:
         ]
     }
 
-The number of verdicts MUST MATCH the number of statements exactly.
-
+The number of verdicts MUST MATCH the number of statements exactly.`,
+    prompt: `
   Input:
   ${input}
 
@@ -185,12 +188,16 @@ The number of verdicts MUST MATCH the number of statements exactly.
 
   JSON:`,
     schema: z.object({
-      verdicts: z.array(
-        z.object({
-          verdict: z.enum(["yes", "no", "unsure"]).describe("The relevancy verdict"),
-          reason: z.string().describe("Explanation for the verdict"),
-        })
-      ).describe("Array of verdicts for each statement"),
+      verdicts: z
+        .array(
+          z.object({
+            verdict: z
+              .enum(["yes", "no", "unsure"])
+              .describe("The relevancy verdict"),
+            reason: z.string().describe("Explanation for the verdict"),
+          }),
+        )
+        .describe("Array of verdicts for each statement"),
     }),
   });
 
@@ -198,19 +205,27 @@ The number of verdicts MUST MATCH the number of statements exactly.
 };
 
 // Convert verdicts to scores
-const convertVerdictsToScore = (verdicts: Array<{ verdict: "yes" | "no" | "unsure"; reason: string }>) => {
+const convertVerdictsToScore = (
+  verdicts: Array<{ verdict: "yes" | "no" | "unsure"; reason: string }>,
+) => {
   if (verdicts.length === 0) return 0;
 
-  const scores = verdicts.map(verdict => {
+  const scores = verdicts.map((verdict) => {
     switch (verdict.verdict) {
-      case "yes": return 1;
-      case "no": return 0;
-      case "unsure": return 0.5;
-      default: return 0;
+      case "yes":
+        return 1;
+      case "no":
+        return 0;
+      case "unsure":
+        return 0.5;
+      default:
+        return 0;
     }
   });
 
-  return scores.reduce((sum, score) => sum + score, 0 as number) / scores.length;
+  return (
+    scores.reduce((sum, score) => sum + score, 0 as number) / scores.length
+  );
 };
 
 // Main relevancy checker
@@ -220,37 +235,41 @@ const checkRelevancy = async (opts: {
 }) => {
   // Step 1: Generate statements from the model output
   const statements = await generateStatements(opts.submission);
-  
+
   // Step 2: Evaluate each statement's relevance
   const verdicts = await evaluateStatements(opts.question, statements);
-  
+
   // Step 3: Convert to score
   const score = convertVerdictsToScore(verdicts);
+
+  const statementsAndVerdicts = statements.map((statement, index) => {
+    const verdict = verdicts[index];
+    return {
+      statement,
+      ...(verdict ? verdict : {}),
+    };
+  });
 
   return {
     score,
     metadata: {
-      statements,
-      verdicts,
+      statementsAndVerdicts,
       averageScore: score,
     },
   };
 };
 
 // This is the scorer that can be passed into the scorers in Evalite
-export const AnswerRelevancy = createScorer<
-  Message[],
-  string,
-  string
->({
-  name: "AnswerRelevancy",
+export const AnswerRelevancy = createScorer<Message[], string, string>({
+  name: "Answer Relevancy",
+  description: "Evaluates the relevancy of each statement in the answer to the question",
   scorer: async ({ input, output }) => {
     // Convert Message[] to string - extract the user's question
-    const question = input.find(msg => msg.role === "user")?.content || "";
-    
+    const question = input.find((msg) => msg.role === "user")?.content || "";
+
     return checkRelevancy({
       question,
       submission: output,
     });
   },
-}); 
+});
