@@ -14,6 +14,8 @@ export const queryRewriter = async (
 ): Promise<QueryPlan> => {
   const { langfuseTraceId } = opts;
   
+  const lastFeedback = context.getLastFeedback();
+
   const result = await generateObject({
     model: queryRewriterModel,
     schema: queryPlanSchema,
@@ -57,6 +59,11 @@ ${context.getMessageHistory()}
 
 ## Latest User Message:
 ${context.getLatestUserMessage()}
+
+${lastFeedback ? `## Previous Search Feedback:
+${lastFeedback}
+
+Use this feedback to guide your search strategy. Focus on addressing the specific gaps and information needs identified above.` : ''}
 
 Based on the available information and conversation context, create a research plan and generate the appropriate search queries.`,
     ...(langfuseTraceId && {

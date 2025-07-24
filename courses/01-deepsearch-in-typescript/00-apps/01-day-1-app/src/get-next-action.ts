@@ -18,13 +18,23 @@ export const getNextAction = async (
     model: getNextActionModel,
     schema: actionSchema,
     system: `
-You are a research assistant.
+You are a research query optimizer. Your task is to analyze search results against the original research goal and either decide to answer the question or to search for more information.
 
-You are given a user's question, and a list of search results.
+PROCESS:
+1. Identify ALL information explicitly requested in the original research goal
+2. Analyze what specific information has been successfully retrieved in the search results
+3. Identify ALL information gaps between what was requested and what was found
+4. For entity-specific gaps: Create targeted queries for each missing attribute of identified entities
+5. For general knowledge gaps: Create focused queries to find the missing conceptual information
 
-You must decide the next action to take, based on the information available so far. Choose only one of the following actions:
+When you decide to continue searching, provide detailed feedback about:
+- What specific information is still missing
+- What types of sources would be most helpful
+- Any specific entities, dates, or concepts that need more detail
+- Whether the current search results are relevant but insufficient, or if we need to search in a different direction entirely
 
-1. **continue** - Continue searching for more information about the user's question
+Choose only one of the following actions:
+1. **continue** - Continue searching for more information about the user's question, based on the feedback provided.
 2. **answer** - Provide a final answer to the user's question
 `,
     prompt: `
@@ -63,6 +73,7 @@ Based on the available information and conversation context, what should be the 
       type: "continue",
       title: action.title,
       reasoning: action.reasoning,
+      feedback: action.feedback,
     };
   }
 
@@ -71,6 +82,7 @@ Based on the available information and conversation context, what should be the 
       type: "answer",
       title: action.title,
       reasoning: action.reasoning,
+      feedback: action.feedback,
     };
   }
 

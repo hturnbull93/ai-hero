@@ -117,6 +117,9 @@ export const runAgentLoop = async (
       langfuseTraceId: opts.langfuseTraceId,
     });
 
+    // Store the feedback in the system context
+    ctx.setLastFeedback(nextAction.feedback);
+
     // Send annotation about the action we're about to take
     opts.writeMessageAnnotation({
       type: "NEW_ACTION",

@@ -27,12 +27,14 @@ export interface ContinueAction {
   type: "continue";
   title: string;
   reasoning: string;
+  feedback: string;
 }
 
 export interface AnswerAction {
   type: "answer";
   title: string;
   reasoning: string;
+  feedback: string;
 }
 
 export type Action = ContinueAction | AnswerAction;
@@ -59,6 +61,9 @@ export const actionSchema = z.object({
   reasoning: z
     .string()
     .describe("The reason you chose this step."),
+  feedback: z
+    .string()
+    .describe("Only required if the action is 'continue'. Detailed feedback about what information is still needed or what gaps remain. This will be used to guide the next search iteration."),
 });
 
 // Zod schema for query plan

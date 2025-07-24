@@ -23,6 +23,11 @@ export class SystemContext {
    */
   private searchHistory: SearchHistoryEntry[] = [];
 
+  /**
+   * The most recent feedback from getNextAction
+   */
+  private lastFeedback: string = "";
+
   private userLocation?: Geo;
 
   constructor(messages: Message[], userLocation: Geo) {
@@ -109,6 +114,20 @@ export class SystemContext {
         ].join("\n\n"),
       )
       .join("\n\n");
+  }
+
+  /**
+   * Store the most recent feedback from getNextAction
+   */
+  setLastFeedback(feedback: string): void {
+    this.lastFeedback = feedback;
+  }
+
+  /**
+   * Get the most recent feedback from getNextAction
+   */
+  getLastFeedback(): string {
+    return this.lastFeedback;
   }
 
   /**
