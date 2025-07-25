@@ -96,6 +96,10 @@ export class SystemContext {
     this.searchHistory.push(search);
   }
 
+  getAllSearchResults(): SearchHistoryEntry[] {
+    return this.searchHistory;
+  }
+
   getSearchHistory(): string {
     return this.searchHistory
       .map((search) =>

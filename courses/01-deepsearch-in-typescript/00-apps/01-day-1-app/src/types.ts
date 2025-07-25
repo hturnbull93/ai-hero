@@ -23,6 +23,13 @@ export interface SearchResult {
   summary: string; // LLM-generated summary
 }
 
+export interface SearchSource {
+  title: string;
+  url: string;
+  snippet: string;
+  favicon?: string;
+}
+
 export interface ContinueAction {
   type: "continue";
   title: string;
@@ -86,6 +93,9 @@ export type MessageAnnotation = {
   type: "QUERY_PLAN";
   plan: string;
   queries: string[];
+} | {
+  type: "SEARCH_SOURCES";
+  sources: SearchSource[];
 };
 
 // Zod schema for message annotations (shared between parsing and serializing)
@@ -98,6 +108,15 @@ export const messageAnnotationSchema = z.union([
     type: z.literal("QUERY_PLAN"),
     plan: z.string(),
     queries: z.array(z.string()),
+  }),
+  z.object({
+    type: z.literal("SEARCH_SOURCES"),
+    sources: z.array(z.object({
+      title: z.string(),
+      url: z.string(),
+      snippet: z.string(),
+      favicon: z.string().optional(),
+    })),
   }),
 ]);
 

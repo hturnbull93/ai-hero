@@ -5,13 +5,43 @@ import { searchSerper } from "./serper";
 import { bulkCrawlWebsites } from "./scraper";
 import { answerQuestion } from "./answer-question";
 import { type streamText } from "ai";
-import type { Action, MessageAnnotation } from "./types";
+import type { Action, MessageAnnotation, SearchSource } from "./types";
 import type { StreamTextResult, Message } from "ai";
 import type { Geo } from "@vercel/functions";
 import { env } from "./env";
 import { summariseURL } from "./summarise";
 
-const searchScrapeAndSummarise = async (query: string, ctx: SystemContext, langfuseTraceId?: string) => {
+const convertSearchResultsToSources = (allSearchResults: any[]): SearchSource[] => {
+  const uniqueResults = new Map<string, any>();
+  
+  for (const searchResult of allSearchResults) {
+    for (const result of searchResult.results) {
+      uniqueResults.set(result.url, result);
+    }
+  }
+  
+  return Array.from(uniqueResults.values()).map(result => {
+    let favicon: string | undefined;
+    try {
+      favicon = `https://www.google.com/s2/favicons?domain=${new URL(result.url).hostname}`;
+    } catch {
+      favicon = undefined;
+    }
+    
+    return {
+      title: result.title,
+      url: result.url,
+      snippet: result.snippet,
+      favicon,
+    };
+  });
+};
+
+const searchScrapeAndSummarise = async (
+  query: string, 
+  ctx: SystemContext, 
+  langfuseTraceId?: string
+) => {
   const numResults = env.SEARCH_RESULTS_COUNT || 5;
   const searchResult = await searchSerper(
     {
@@ -127,20 +157,28 @@ export const runAgentLoop = async (
     });
 
     if (nextAction.type === "answer") {
-      return answerQuestion(ctx, {
-        langfuseTraceId: opts.langfuseTraceId,
-        onFinish: opts.onFinish,
-      });
+      // Break out of the loop to handle answering
+      break;
     }
 
     // If continue, increment the step and repeat
     ctx.incrementStep();
   }
 
-  // If we've taken all actions and still don't have an answer,
-  // we ask the LLM to give its best attempt at an answer
+  // Get all search results from context, deduplicate, and send as annotation
+  const allSearchResults = ctx.getAllSearchResults();
+  const sources = convertSearchResultsToSources(allSearchResults);
+
+  opts.writeMessageAnnotation({
+    type: "SEARCH_SOURCES",
+    sources,
+  });
+
+  // Determine if this is a final answer (we've taken all actions) or a regular answer
+  const isFinal = ctx.shouldStop();
+
   return answerQuestion(ctx, {
-    isFinal: true,
+    isFinal,
     langfuseTraceId: opts.langfuseTraceId,
     onFinish: opts.onFinish,
   });
