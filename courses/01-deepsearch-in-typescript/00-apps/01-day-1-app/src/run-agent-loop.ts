@@ -4,30 +4,33 @@ import { SystemContext } from "./system-context";
 import { searchSerper } from "./serper";
 import { bulkCrawlWebsites } from "./scraper";
 import { answerQuestion } from "./answer-question";
-import { type streamText } from "ai";
+import { checkIsSafe } from "./safety-check";
+import { generateSafetyRefusal } from "./safety-refusal";
 import type { Action, MessageAnnotation, SearchSource } from "./types";
-import type { StreamTextResult, Message } from "ai";
+import type { StreamTextResult, Message, streamText } from "ai";
 import type { Geo } from "@vercel/functions";
 import { env } from "./env";
 import { summariseURL } from "./summarise";
 
-const convertSearchResultsToSources = (allSearchResults: any[]): SearchSource[] => {
+const convertSearchResultsToSources = (
+  allSearchResults: any[],
+): SearchSource[] => {
   const uniqueResults = new Map<string, any>();
-  
+
   for (const searchResult of allSearchResults) {
     for (const result of searchResult.results) {
       uniqueResults.set(result.url, result);
     }
   }
-  
-  return Array.from(uniqueResults.values()).map(result => {
+
+  return Array.from(uniqueResults.values()).map((result) => {
     let favicon: string | undefined;
     try {
       favicon = `https://www.google.com/s2/favicons?domain=${new URL(result.url).hostname}`;
     } catch {
       favicon = undefined;
     }
-    
+
     return {
       title: result.title,
       url: result.url,
@@ -38,9 +41,9 @@ const convertSearchResultsToSources = (allSearchResults: any[]): SearchSource[] 
 };
 
 const searchScrapeAndSummarise = async (
-  query: string, 
-  ctx: SystemContext, 
-  langfuseTraceId?: string
+  query: string,
+  ctx: SystemContext,
+  langfuseTraceId?: string,
 ) => {
   const numResults = env.SEARCH_RESULTS_COUNT || 5;
   const searchResult = await searchSerper(
@@ -70,27 +73,29 @@ const searchScrapeAndSummarise = async (
 
   // Summarise all results in parallel
   const summaryMap = new Map<string, string>();
-  await Promise.all(results.map(async (result) => {
-    const scrapedContent = scrapedContentMap.get(result.link) ?? "";
-    if (!scrapedContent.trim()) {
-      summaryMap.set(result.link, "summarisation failed");
-      return;
-    }
-    const summary = await summariseURL({
-      conversationHistory,
-      scrapedContent,
-      searchMetadata: {
-        date: result.date ?? "",
-        title: result.title ?? "",
-        url: result.link ?? "",
-        snippet: result.snippet ?? "",
-      },
-      query,
-      langfuseTraceId,
-    });
+  await Promise.all(
+    results.map(async (result) => {
+      const scrapedContent = scrapedContentMap.get(result.link) ?? "";
+      if (!scrapedContent.trim()) {
+        summaryMap.set(result.link, "summarisation failed");
+        return;
+      }
+      const summary = await summariseURL({
+        conversationHistory,
+        scrapedContent,
+        searchMetadata: {
+          date: result.date ?? "",
+          title: result.title ?? "",
+          url: result.link ?? "",
+          snippet: result.snippet ?? "",
+        },
+        query,
+        langfuseTraceId,
+      });
 
-    summaryMap.set(result.link, summary);
-  }));
+      summaryMap.set(result.link, summary);
+    }),
+  );
 
   return {
     query,
@@ -117,6 +122,16 @@ export const runAgentLoop = async (
   // A persistent container for the state of our system
   const ctx = new SystemContext(messages, opts.userLocation);
 
+  // Safety check - verify the user's question is safe to process
+  const safetyResult = await checkIsSafe(ctx);
+
+  if (safetyResult.classification === "refuse") {
+    // Return a refusal message instead of processing the request
+    return generateSafetyRefusal(safetyResult.reason, {
+      onFinish: opts.onFinish,
+    });
+  }
+
   // A loop that continues until we have an answer
   // or we've taken 10 actions
   while (!ctx.shouldStop()) {
@@ -133,9 +148,11 @@ export const runAgentLoop = async (
     });
 
     // 2. Search for all queries in parallel
-    const searchResults = await Promise.all(queryPlan.queries.map(query =>
-      searchScrapeAndSummarise(query, ctx, opts.langfuseTraceId)
-    ));
+    const searchResults = await Promise.all(
+      queryPlan.queries.map((query) =>
+        searchScrapeAndSummarise(query, ctx, opts.langfuseTraceId),
+      ),
+    );
 
     // 3. Save all search results to the context
     for (const result of searchResults) {
